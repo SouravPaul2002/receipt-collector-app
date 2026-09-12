@@ -1,0 +1,43 @@
+# dependencies
+**/node_modules
+
+# environment variables
+**/.env
+**/.env*.local
+
+# next.js build output
+**/.next/
+**/out/
+**/next-env.d.ts
+
+# production builds  
+**/build
+**/dist
+
+# testing
+**/coverage
+
+# logs
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/pnpm-debug.log*
+
+# runtime data (backend)
+**/pids
+**/*.pid
+**/*.seed
+**/*.pid.lock
+
+# misc
+**/*.tsbuildinfo
+*.pem
+.DS_Store
+
+# editor/IDE
+.vscode/
+.idea/
+
+# vercel
+.vercel
