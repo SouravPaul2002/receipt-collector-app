@@ -1,0 +1,32 @@
+import jwt from 'jsonwebtoken'
+import ApiError from '../utils/ApiError.js'
+import asyncHandler from '../utils/asyncHandler.js'
+import User from '../models/user.model.js'
+
+/**
+ * Middleware to verify JWT Access Token and attach user object to req
+ */
+export const verifyJWT = asyncHandler(async (req, res, next) => {
+    try {
+        const token =
+            req.cookies?.accessToken ||
+            req.header("Authorization")?.replace("Bearer ", "")
+
+        if (!token) {
+            throw new ApiError(401, "Unauthorized access: No token provided")
+        }
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+
+        const user = await User.findById(decodedToken?._id).select("-password")
+
+        if (!user) {
+            throw new ApiError(401, "Invalid Access Token: User not found")
+        }
+
+        req.user = user
+        next()
+    } catch (err) {
+        throw new ApiError(401, err?.message || "Invalid or expired Access Token")
+    }
+})

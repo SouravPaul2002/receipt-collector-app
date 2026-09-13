@@ -6,7 +6,7 @@ This document tracks all completed features, architectural implementations, and 
 
 ## 📊 Overall Build Progress Summary
 
-- **Step 1: Auth & Basic CRUD for Products/Warranties** $\rightarrow$ **In Progress (100% of CRUD Complete)**
+- **Step 1: Auth & Basic CRUD for Products/Warranties** $\rightarrow$ **100% Complete 🎉**
   - [x] Backend architecture & Express server setup
   - [x] MongoDB Atlas schemas & models (`User`, `Product`, `Reminder`)
   - [x] Global error handler, `asyncHandler`, `ApiError`, `ApiResponse` wrappers
@@ -17,7 +17,13 @@ This document tracks all completed features, architectural implementations, and 
   - [x] Delete all warranties controller (`DELETE /api/warranties`) & route mounting
   - [x] Delete single warranty controller (`DELETE /api/warranties/:id`) & route mounting
   - [x] Update warranty CRUD API (`PUT /api/warranties/:id`) & route mounting
-  - [ ] Google OAuth 2.0 Auth flow (User login, JWT/Session tokens)
+  - [x] JWT Authentication & Token Management (`jsonwebtoken`, `bcryptjs`)
+  - [x] User Registration endpoint (`POST /api/auth/register`)
+  - [x] User Login endpoint (`POST /api/auth/login`)
+  - [x] User Logout endpoint (`POST /api/auth/logout`)
+  - [x] Current User Profile endpoint (`GET /api/auth/me`)
+  - [x] Refresh Access Token endpoint (`POST /api/auth/refresh-token`)
+  - [x] JWT Protection Middleware (`verifyJWT`)
 
 - **Step 2: Google Drive Upload Integration** $\rightarrow$ **Pending (0%)**
   - [ ] OAuth `drive.file` consent scope integration
@@ -46,25 +52,33 @@ This document tracks all completed features, architectural implementations, and 
 - **[`ApiError.js`](file:///c:/receipt-collector/backend/src/utils/ApiError.js)**: Custom Error class formatted with `statusCode`, `message`, and `errors`.
 - **[`ApiResponse.js`](file:///c:/receipt-collector/backend/src/utils/ApiResponse.js)**: Standardized success JSON response builder.
 - **[`errorHandler.js`](file:///c:/receipt-collector/backend/src/middlewares/errorHandler.js)**: Centralized Express global error handling middleware.
+- **[`auth.middleware.js`](file:///c:/receipt-collector/backend/src/middlewares/auth.middleware.js)**: JWT token verification middleware (`verifyJWT`).
 
 ### 3. Database Layer (MongoDB Atlas & Mongoose)
 - **[`db.js`](file:///c:/receipt-collector/backend/src/config/db.js)**: Async database connection module using `process.env.DATABASE_URI`.
-- **[`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js)**: User profile, Google OAuth info, refresh tokens, and notification preferences.
+- **[`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js)**: User profile, password hashing (`bcryptjs`), Google OAuth info, refresh tokens, notification preferences, and JWT token generator methods (`generateAccessToken`, `generateRefreshToken`).
 - **[`product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js)**: Product/Warranty Vault items with pre-validation hook for calculating `warrantyExpiryDate`. Fixed Mongoose v9 hook compatibility (`TypeError: next is not a function`).
 - **[`reminder.model.js`](file:///c:/receipt-collector/backend/src/models/reminder.model.js)**: Expiry notification schedules (`scheduledDate`, `daysBeforeExpiry`, `channel`, `status`).
 
-### 4. API Endpoints & Routes (Full Warranty CRUD)
-- **Health Check API**: `GET /api/health` mapped via [`health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js) & [`health.routes.js`](file:///c:/receipt-collector/backend/src/routes/health.routes.js).
-- **Warranty Creation API**: `POST /api/warranties` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
-- **Warranty Fetch All API**: `GET /api/warranties` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
-- **Warranty Fetch By ID API**: `GET /api/warranties/:id` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
-- **Warranty Update By ID API**: `PUT /api/warranties/:id` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
-- **Warranty Delete All API**: `DELETE /api/warranties` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
-- **Warranty Delete By ID API**: `DELETE /api/warranties/:id` mapped via [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) & [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
+### 4. API Endpoints & Routes
+- **Health Check API**: `GET /api/health` mapped via [`health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js).
+- **User Authentication APIs**:
+  - `POST /api/auth/register` (Register user, hash password, return tokens)
+  - `POST /api/auth/login` (Login user, verify password, return tokens)
+  - `POST /api/auth/logout` (Logout user, clear tokens and cookies)
+  - `GET /api/auth/me` (Fetch current user profile via JWT)
+  - `POST /api/auth/refresh-token` (Issue new access token)
+- **Full Warranty CRUD APIs**:
+  - `POST /api/warranties` (Create warranty)
+  - `GET /api/warranties` (Fetch all warranties)
+  - `GET /api/warranties/:id` (Fetch single warranty)
+  - `PUT /api/warranties/:id` (Update single warranty)
+  - `DELETE /api/warranties/:id` (Delete single warranty)
+  - `DELETE /api/warranties` (Delete all warranties)
 - **Router Aggregator**: [`src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) mounts feature routes under `/api`.
 
 ### 5. Verification & Diagnostic Scripts
-- **[`testDbCollections.js`](file:///c:/receipt-collector/backend/src/scripts/testDbCollections.js)**: Diagnostic script that connected to MongoDB Atlas and initialized `users`, `products`, and `reminders` collections live.
+- **[`testDbCollections.js`](file:///c:/receipt-collector/backend/src/scripts/testDbCollections.js)**: Diagnostic script initializing `users`, `products`, and `reminders` collections live in MongoDB Atlas.
 - **[`testCreateWarranty.js`](file:///c:/receipt-collector/backend/src/scripts/testCreateWarranty.js)**: Verification script testing document insertion and auto-calculated expiry date.
 
 ### 6. Documentation Files
@@ -76,6 +90,5 @@ This document tracks all completed features, architectural implementations, and 
 ---
 
 ## 🎯 Next Immediate Steps
-1. Set up Google OAuth 2.0 Auth route and login controllers.
-2. Integrate Google Drive file upload middleware and Drive API client.
-3. Build the Expiry Reminder Engine cron job.
+1. Integrate Google Drive file upload middleware and Drive API client (Step 2).
+2. Build the Expiry Reminder Engine cron job (Step 3).
