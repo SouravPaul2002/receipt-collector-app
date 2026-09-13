@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { verifyJWT } from '../middlewares/auth.middleware.js'
 import {
     createWarranty,
     getAllWarranties,
@@ -10,13 +11,16 @@ import {
 
 const router = Router()
 
+// Apply authentication middleware to all warranty endpoints
+router.use(verifyJWT)
+
 // POST /api/warranties -> create a new warranty
 router.post('/', createWarranty)
 
-// GET /api/warranties -> fetch all warranties
+// GET /api/warranties -> fetch all warranties for authenticated user
 router.get('/', getAllWarranties)
 
-// DELETE /api/warranties -> delete all warranties
+// DELETE /api/warranties -> delete all warranties for authenticated user
 router.delete('/', deleteAllWarranties)
 
 // GET /api/warranties/:id -> fetch single warranty by ID

@@ -72,7 +72,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | :--- | :--- | :--- |
 | [`backend/src/controllers/health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js) | Request handler for system health and status checks. | Exports `checkHealth` controller wrapped with `asyncHandler`, returning server uptime, current timestamp, and operational status in `ApiResponse` format. |
 | [`backend/src/controllers/auth.controller.js`](file:///c:/receipt-collector/backend/src/controllers/auth.controller.js) | Request handler for User Authentication & Token management. | Handles `registerUser`, `loginUser`, `logoutUser`, `getCurrentUser`, and `refreshAccessToken`. Generates Access/Refresh tokens, sets HTTP-only cookies, and returns sanitized user data (tokens are excluded from the JSON response body for enhanced security). |
-| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). |
+| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records with user data isolation. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). All queries are scoped strictly to `req.user._id`. |
 
 ### Routes (`/backend/src/routes`)
 
@@ -80,7 +80,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | :--- | :--- | :--- |
 | [`backend/src/routes/health.routes.js`](file:///c:/receipt-collector/backend/src/routes/health.routes.js) | Router definition for server health check endpoints. | Defines `GET /` route mapped to `checkHealth` controller. |
 | [`backend/src/routes/auth.routes.js`](file:///c:/receipt-collector/backend/src/routes/auth.routes.js) | Router definition for authentication API endpoints. | Maps `/register`, `/login`, `/logout` (protected), `/me` (protected), and `/refresh-token` endpoints. |
-| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints. | Maps `POST /`, `GET /`, `DELETE /`, `GET /:id`, `PUT /:id`, and `DELETE /:id` to warranty controllers. |
+| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints with JWT authentication protection. | Applies `verifyJWT` middleware across all routes (`router.use(verifyJWT)`) and maps `POST /`, `GET /`, `DELETE /`, `GET /:id`, `PUT /:id`, and `DELETE /:id` to warranty controllers. |
 | [`backend/src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) | Main Express router aggregator for all API endpoints under `/api`. | Imports and mounts individual feature routers (`/health`, `/auth`, `/warranties`). |
 
 ---
