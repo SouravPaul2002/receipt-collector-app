@@ -27,7 +27,8 @@ const generateAccessAndRefreshTokens = async (userId) => {
  */
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
 }
 
 /**
@@ -66,8 +67,8 @@ export const registerUser = asyncHandler(async (req, res) => {
                 201,
                 {
                     user: createdUser,
-                    accessToken,
-                    refreshToken
+                    // accessToken,
+                    // refreshToken
                 },
                 "User registered successfully"
             )
@@ -109,8 +110,8 @@ export const loginUser = asyncHandler(async (req, res) => {
                 200,
                 {
                     user: loggedInUser,
-                    accessToken,
-                    refreshToken
+                    // accessToken,
+                    // refreshToken
                 },
                 "User logged in successfully"
             )
