@@ -26,8 +26,8 @@ This document serves as the master registry explaining the **purpose**, **necess
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/index.js`](file:///c:/receipt-collector/backend/index.js) | Server entry point for Express backend application. | Initializes Express app, configures CORS, JSON/urlencoded body parsers, cookie parser, mounts API routes under `/api`, attaches global 404 & error handlers, and connects to MongoDB before starting the HTTP server on port 5000. |
-| [`backend/package.json`](file:///c:/receipt-collector/backend/package.json) | Manages Node.js project metadata, dependencies, scripts, and module settings. | Configured with `"type": "module"` (ESM), includes dependencies (`express`, `mongoose`, `dotenv`, `cors`, `cookie-parser`, `googleapis`), and defines dev script (`nodemon index.js`). |
-| [`backend/.env`](file:///c:/receipt-collector/backend/.env) | Holds private environment variables (DB credentials, server port, secret keys). | Loaded into `process.env` at app start via `dotenv.config()`. Contains `PORT` and `DATABASE_URI`. |
+| [`backend/package.json`](file:///c:/receipt-collector/backend/package.json) | Manages Node.js project metadata, dependencies, scripts, and module settings. | Configured with `"type": "module"` (ESM), includes dependencies (`express`, `mongoose`, `dotenv`, `cors`, `cookie-parser`, `jsonwebtoken`, `bcryptjs`, `googleapis`), and defines dev script (`nodemon index.js`). |
+| [`backend/.env`](file:///c:/receipt-collector/backend/.env) | Holds private environment variables (DB credentials, server port, secret keys). | Loaded into `process.env` at app start via `dotenv.config()`. Contains `PORT`, `DATABASE_URI`, `ACCESS_TOKEN_SECRET`, `ACCESS_TOKEN_EXPIRY`, `REFRESH_TOKEN_SECRET`, `REFRESH_TOKEN_EXPIRY`, and `CORS_ORIGIN`. |
 | [`backend/database/db_config.js`](file:///c:/receipt-collector/backend/database/db_config.js) | *(Legacy)* Initial database connection file. | Replaced by `src/config/db.js` in the refactored architecture. |
 
 ### Configuration (`/backend/src/config`)
@@ -40,7 +40,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
-| [`backend/src/models/user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) | Mongoose schema and model for application users. | Defines user fields (`googleId`, `email`, `name`, `avatar`, `refreshToken`, `driveFolderId`, `preferences`) with unique constraints and indexing. |
+| [`backend/src/models/user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) | Mongoose schema and model for application users. | Defines user fields (`googleId`, `email`, `name`, `password`, `avatar`, `refreshToken`, `driveFolderId`, `preferences`). Uses `bcryptjs` pre-save hook for password hashing and provides instance methods: `isPasswordCorrect`, `generateAccessToken`, and `generateRefreshToken`. |
 | [`backend/src/models/product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js) | Mongoose schema and model for products and warranties. | Stores product metadata (`productName`, `category`, `brand`, `purchaseDate`, `warrantyMonths`, `warrantyExpiryDate`, `driveFileId`, `ocrData`). Features a pre-validation hook auto-calculating `warrantyExpiryDate` from purchase date + warranty duration. |
 | [`backend/src/models/reminder.model.js`](file:///c:/receipt-collector/backend/src/models/reminder.model.js) | Mongoose schema and model for scheduled warranty reminders. | Tracks upcoming reminder notifications (`user`, `product`, `scheduledDate`, `daysBeforeExpiry`, `channel`, `status`, `sentAt`). |
 
@@ -64,21 +64,24 @@ This document serves as the master registry explaining the **purpose**, **necess
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/middlewares/errorHandler.js`](file:///c:/receipt-collector/backend/src/middlewares/errorHandler.js) | Centralized global error handling middleware for Express. | Intercepts all errors passed via `next(err)`. Normalizes non-ApiError instances into `ApiError` format and sends a uniform JSON response to the client. |
+| [`backend/src/middlewares/auth.middleware.js`](file:///c:/receipt-collector/backend/src/middlewares/auth.middleware.js) | JWT Token verification middleware (`verifyJWT`). | Extracts JWT Access Token from `cookies` or `Authorization: Bearer` header, verifies signature using `ACCESS_TOKEN_SECRET`, finds user in MongoDB, and attaches `req.user`. |
 
 ### Controllers (`/backend/src/controllers`)
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/controllers/health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js) | Request handler for system health and status checks. | Exports `checkHealth` controller wrapped with `asyncHandler`, returning server uptime, current timestamp, and operational status in `ApiResponse` format. |
-| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). Automatically recalculates `warrantyExpiryDate` when `purchaseDate` or `warrantyMonths` are updated. |
+| [`backend/src/controllers/auth.controller.js`](file:///c:/receipt-collector/backend/src/controllers/auth.controller.js) | Request handler for User Authentication & Token management. | Handles `registerUser`, `loginUser`, `logoutUser`, `getCurrentUser`, and `refreshAccessToken`. Generates Access/Refresh tokens, sets HTTP-only cookies, and returns sanitized user data. |
+| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). |
 
 ### Routes (`/backend/src/routes`)
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/routes/health.routes.js`](file:///c:/receipt-collector/backend/src/routes/health.routes.js) | Router definition for server health check endpoints. | Defines `GET /` route mapped to `checkHealth` controller. |
-| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints. | Maps `POST /`, `GET /`, `DELETE /`, `GET /:id`, `PUT /:id`, and `DELETE /:id` to their respective warranty controllers. |
-| [`backend/src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) | Main Express router aggregator for all API endpoints under `/api`. | Imports and mounts individual feature routers (`/health`, `/warranties`). |
+| [`backend/src/routes/auth.routes.js`](file:///c:/receipt-collector/backend/src/routes/auth.routes.js) | Router definition for authentication API endpoints. | Maps `/register`, `/login`, `/logout` (protected), `/me` (protected), and `/refresh-token` endpoints. |
+| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints. | Maps `POST /`, `GET /`, `DELETE /`, `GET /:id`, `PUT /:id`, and `DELETE /:id` to warranty controllers. |
+| [`backend/src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) | Main Express router aggregator for all API endpoints under `/api`. | Imports and mounts individual feature routers (`/health`, `/auth`, `/warranties`). |
 
 ---
 

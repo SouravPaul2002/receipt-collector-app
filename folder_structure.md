@@ -14,15 +14,18 @@ receipt-collector/
 │   │   ├── config/             # DB & App configuration (MongoDB connection)
 │   │   │   └── db.js
 │   │   ├── controllers/        # Request handlers & HTTP responses
+│   │   │   ├── auth.controller.js
 │   │   │   ├── health.controller.js
 │   │   │   └── warranty.controller.js
 │   │   ├── middlewares/        # Custom Express middlewares
+│   │   │   ├── auth.middleware.js
 │   │   │   └── errorHandler.js
 │   │   ├── models/             # Mongoose Schemas & MongoDB models
 │   │   │   ├── product.model.js
 │   │   │   ├── reminder.model.js
 │   │   │   └── user.model.js
 │   │   ├── routes/             # API Route definitions
+│   │   │   ├── auth.routes.js
 │   │   │   ├── health.routes.js
 │   │   │   ├── index.js        # Main API router aggregator (/api)
 │   │   │   └── warranty.routes.js

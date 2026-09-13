@@ -1,11 +1,12 @@
 import mongoose, { Schema } from 'mongoose'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 const userSchema = new Schema(
     {
         googleId: {
             type: String,
-            required: [true, 'Google ID is required'],
-            unique: true,
+            sparse: true,
             index: true
         },
         email: {
@@ -20,8 +21,13 @@ const userSchema = new Schema(
             required: [true, 'Name is required'],
             trim: true
         },
+        password: {
+            type: String,
+            required: [function () { return !this.googleId }, 'Password is required']
+        },
         avatar: {
-            type: String
+            type: String,
+            default: ''
         },
         refreshToken: {
             type: String
@@ -44,6 +50,47 @@ const userSchema = new Schema(
         timestamps: true
     }
 )
+
+// Pre-save hook to hash password before saving to DB
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) return
+
+    this.password = await bcrypt.hash(this.password, 10)
+})
+
+// Compare entered password with hashed password in DB
+userSchema.methods.isPasswordCorrect = async function (password) {
+    if (!this.password) return false
+    return await bcrypt.compare(password, this.password)
+}
+
+// Generate Access Token (Short-lived)
+userSchema.methods.generateAccessToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            email: this.email,
+            name: this.name
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '1d'
+        }
+    )
+}
+
+// Generate Refresh Token (Long-lived)
+userSchema.methods.generateRefreshToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '10d'
+        }
+    )
+}
 
 const User = mongoose.model('User', userSchema)
 export default User
