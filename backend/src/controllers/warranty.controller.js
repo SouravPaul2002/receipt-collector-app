@@ -6,11 +6,10 @@ import Product from '../models/product.model.js'
 /**
  * @desc    Create a new warranty / product entry
  * @route   POST /api/warranties
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const createWarranty = asyncHandler(async (req, res) => {
     const {
-        user,
         productName,
         category,
         brand,
@@ -31,9 +30,9 @@ export const createWarranty = asyncHandler(async (req, res) => {
         throw new ApiError(400, "productName, purchaseDate, and warrantyMonths are required")
     }
 
-    // Create new warranty/product document in MongoDB
+    // Create new warranty/product document in MongoDB bound to req.user._id
     const warranty = await Product.create({
-        user: user || req.user?._id,
+        user: req.user._id,
         productName,
         category,
         brand,
@@ -54,30 +53,27 @@ export const createWarranty = asyncHandler(async (req, res) => {
     )
 })
 
-
-
 /**
- * @desc    Get all warranty / product entries
+ * @desc    Get all warranty / product entries for logged-in user
  * @route   GET /api/warranties
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const getAllWarranties = asyncHandler(async (req, res) => {
-    const warranties = await Product.find()
+    const warranties = await Product.find({ user: req.user._id })
 
     return res.status(200).json(
-        new ApiResponse(200, warranties, "All warranties fetched successfully")
+        new ApiResponse(200, warranties, "User warranties fetched successfully")
     )
 })
-
 
 /**
  * @desc    Get single warranty / product by ID
  * @route   GET /api/warranties/:id
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const getWarrantyById = asyncHandler(async (req, res) => {
     const { id } = req.params
-    const warranty = await Product.findById(id)
+    const warranty = await Product.findOne({ _id: id, user: req.user._id })
 
     if (!warranty) {
         throw new ApiError(404, "Warranty not found")
@@ -89,26 +85,26 @@ export const getWarrantyById = asyncHandler(async (req, res) => {
 })
 
 /**
- * @desc    Delete all warranty / product entries
+ * @desc    Delete all warranty / product entries for logged-in user
  * @route   DELETE /api/warranties
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const deleteAllWarranties = asyncHandler(async (req, res) => {
-    const result = await Product.deleteMany({})
+    const result = await Product.deleteMany({ user: req.user._id })
 
     return res.status(200).json(
-        new ApiResponse(200, { deletedCount: result.deletedCount }, "All warranties deleted successfully")
+        new ApiResponse(200, { deletedCount: result.deletedCount }, "All user warranties deleted successfully")
     )
 })
 
 /**
  * @desc    Delete single warranty / product by ID
  * @route   DELETE /api/warranties/:id
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const deleteWarrantyById = asyncHandler(async (req, res) => {
     const { id } = req.params
-    const warranty = await Product.findByIdAndDelete(id)
+    const warranty = await Product.findOneAndDelete({ _id: id, user: req.user._id })
 
     if (!warranty) {
         throw new ApiError(404, "Warranty not found")
@@ -119,16 +115,15 @@ export const deleteWarrantyById = asyncHandler(async (req, res) => {
     )
 })
 
-
 /**
  * @desc    Update single warranty / product by ID
  * @route   PUT /api/warranties/:id
- * @access  Public / Private (once auth middleware is added)
+ * @access  Private (Protected by verifyJWT)
  */
 export const updateWarrantyById = asyncHandler(async (req, res) => {
     const { id } = req.params
 
-    const existingWarranty = await Product.findById(id)
+    const existingWarranty = await Product.findOne({ _id: id, user: req.user._id })
     if (!existingWarranty) {
         throw new ApiError(404, "Warranty not found")
     }
@@ -143,8 +138,11 @@ export const updateWarrantyById = asyncHandler(async (req, res) => {
         req.body.warrantyExpiryDate = expiry
     }
 
-    const updatedWarranty = await Product.findByIdAndUpdate(
-        id,
+    // Prevent overriding user ownership
+    delete req.body.user
+
+    const updatedWarranty = await Product.findOneAndUpdate(
+        { _id: id, user: req.user._id },
         req.body,
         { new: true, runValidators: true }
     )

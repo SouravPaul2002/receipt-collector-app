@@ -68,13 +68,13 @@ This document tracks all completed features, architectural implementations, and 
   - `POST /api/auth/logout` (Logout user, clear tokens and cookies)
   - `GET /api/auth/me` (Fetch current user profile via JWT)
   - `POST /api/auth/refresh-token` (Issue new access token)
-- **Full Warranty CRUD APIs**:
-  - `POST /api/warranties` (Create warranty)
-  - `GET /api/warranties` (Fetch all warranties)
-  - `GET /api/warranties/:id` (Fetch single warranty)
-  - `PUT /api/warranties/:id` (Update single warranty)
-  - `DELETE /api/warranties/:id` (Delete single warranty)
-  - `DELETE /api/warranties` (Delete all warranties)
+- **Full Warranty CRUD APIs (Protected with `verifyJWT` & User-Scoped)**:
+  - `POST /api/warranties` (Create warranty bound to authenticated user)
+  - `GET /api/warranties` (Fetch all warranties for authenticated user)
+  - `GET /api/warranties/:id` (Fetch single warranty owned by user)
+  - `PUT /api/warranties/:id` (Update single warranty owned by user)
+  - `DELETE /api/warranties/:id` (Delete single warranty owned by user)
+  - `DELETE /api/warranties` (Delete all warranties belonging to user)
 - **Router Aggregator**: [`src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) mounts feature routes under `/api`.
 
 ### 5. Verification & Diagnostic Scripts
