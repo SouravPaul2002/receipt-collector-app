@@ -10,9 +10,11 @@ This document serves as the master registry explaining the **purpose**, **necess
 | :--- | :--- | :--- |
 | [`goal.md`](file:///c:/receipt-collector/goal.md) | Outlines the core product goals, feature roadmap, target audience, and architecture rationale. | Defines the product vision (Warranty Vault, Google Drive integration, OCR, Reminders) and explains key technology trade-offs. |
 | [`planning.md`](file:///c:/receipt-collector/planning.md) | Stores tech stack selections, step-by-step build order, and architectural decisions. | Acts as the implementation blueprint specifying step 1 (Auth + CRUD), step 2 (Drive Integration), step 3 (Reminders), etc. |
+| [`progress.md`](file:///c:/receipt-collector/progress.md) | **Master task progress tracker** listing all completed milestones, step-by-step progress, and next immediate tasks. | Provides a breakdown of what has been built so far across backend, database, APIs, and documentation. |
+| [`agent_read.md`](file:///c:/receipt-collector/agent_read.md) | **Mandatory Agent Operating Protocol** for AI pair programmers (e.g. Antigravity). | Contains mandatory pre-task review steps and post-task update checklists (`working.md`, `build_log.md`, `progress.md`, `folder_structure.md`). |
 | [`folder_structure.md`](file:///c:/receipt-collector/folder_structure.md) | Maps out the directory and file tree of the backend and frontend. | Provides a high-level visual representation of how files are organized in the codebase. |
 | [`working.md`](file:///c:/receipt-collector/working.md) | **(This file)** Master registry of every file's function, necessity, and operational details. | Serves as living documentation for developers and AI agents to quickly understand what every file does and why it exists. |
-| [`build_log.md`](file:///c:/receipt-collector/build_log.md) | Logs historical build tasks, completed steps, and execution milestones. | Tracks project setup progress over time. |
+| [`build_log.md`](file:///c:/receipt-collector/build_log.md) | Logs historical build tasks, completed steps, and execution milestones. | Tracks project implementation progress over time. |
 | [`.gitignore`](file:///c:/receipt-collector/.gitignore) | Prevents sensitive or build-generated files (e.g. `node_modules/`, `.env`) from being committed to Git. | Specifies glob patterns ignored by Git version control. |
 
 ---
@@ -39,7 +41,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/models/user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) | Mongoose schema and model for application users. | Defines user fields (`googleId`, `email`, `name`, `avatar`, `refreshToken`, `driveFolderId`, `preferences`) with unique constraints and indexing. |
-| [`backend/src/models/product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js) | Mongoose schema and model for products and warranties. | Stores product metadata (`productName`, `category`, `brand`, `purchaseDate`, `warrantyMonths`, `warrantyExpiryDate`, `driveFileId`, `ocrData`). Features a synchronous pre-validation hook auto-calculating `warrantyExpiryDate` from purchase date + warranty duration. |
+| [`backend/src/models/product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js) | Mongoose schema and model for products and warranties. | Stores product metadata (`productName`, `category`, `brand`, `purchaseDate`, `warrantyMonths`, `warrantyExpiryDate`, `driveFileId`, `ocrData`). Features a pre-validation hook auto-calculating `warrantyExpiryDate` from purchase date + warranty duration. |
 | [`backend/src/models/reminder.model.js`](file:///c:/receipt-collector/backend/src/models/reminder.model.js) | Mongoose schema and model for scheduled warranty reminders. | Tracks upcoming reminder notifications (`user`, `product`, `scheduledDate`, `daysBeforeExpiry`, `channel`, `status`, `sentAt`). |
 
 ### Scripts (`/backend/src/scripts`)
@@ -68,14 +70,14 @@ This document serves as the master registry explaining the **purpose**, **necess
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/controllers/health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js) | Request handler for system health and status checks. | Exports `checkHealth` controller wrapped with `asyncHandler`, returning server uptime, current timestamp, and operational status in `ApiResponse` format. |
-| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for creating and managing product warranty records. | Exports `createWarranty` controller function wrapped with `asyncHandler`. Validates required inputs (`productName`, `purchaseDate`, `warrantyMonths`), creates new `Product` document in MongoDB Atlas, and returns standardized `ApiResponse(201, product)`. |
+| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). Automatically recalculates `warrantyExpiryDate` when `purchaseDate` or `warrantyMonths` are updated. |
 
 ### Routes (`/backend/src/routes`)
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/routes/health.routes.js`](file:///c:/receipt-collector/backend/src/routes/health.routes.js) | Router definition for server health check endpoints. | Defines `GET /` route mapped to `checkHealth` controller. |
-| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints. | Maps `POST /` to the `createWarranty` controller. |
+| [`backend/src/routes/warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js) | Router definition for warranty API endpoints. | Maps `POST /`, `GET /`, `DELETE /`, `GET /:id`, `PUT /:id`, and `DELETE /:id` to their respective warranty controllers. |
 | [`backend/src/routes/index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) | Main Express router aggregator for all API endpoints under `/api`. | Imports and mounts individual feature routers (`/health`, `/warranties`). |
 
 ---
