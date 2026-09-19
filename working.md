@@ -15,7 +15,12 @@ This document serves as the master registry explaining the **purpose**, **necess
 | [`folder_structure.md`](file:///c:/receipt-collector/folder_structure.md) | Maps out the directory and file tree of the backend and frontend. | Provides a high-level visual representation of how files are organized in the codebase. |
 | [`working.md`](file:///c:/receipt-collector/working.md) | **(This file)** Master registry of every file's function, necessity, and operational details. | Serves as living documentation for developers and AI agents to quickly understand what every file does and why it exists. |
 | [`build_log.md`](file:///c:/receipt-collector/build_log.md) | Logs historical build tasks, completed steps, and execution milestones. | Tracks project implementation progress over time. |
-| [`.gitignore`](file:///c:/receipt-collector/.gitignore) | Prevents sensitive or build-generated files (e.g. `node_modules/`, `.env`) from being committed to Git. | Specifies glob patterns ignored by Git version control. |
+| [`documentation/0_goal.md`](file:///c:/receipt-collector/documentation/0_goal.md) | Comprehensive product vision, problem statement, and feature-by-feature rationale. | Explains why Receipt Collector exists, user pain points solved, core feature mechanics, and why future features are deferred. |
+| [`documentation/1_folder_structure.md`](file:///c:/receipt-collector/documentation/1_folder_structure.md) | Architectural layout and folder layer responsibilities. | Explains the Monorepo structure, MVC layer separation of concerns (routes, controllers, models, middlewares, utils, services), and frontend hierarchy. |
+| [`documentation/2_tech_stack.md`](file:///c:/receipt-collector/documentation/2_tech_stack.md) | Technology choices, alternatives considered, and Architectural Decision Records (ADRs). | Documents why Google Drive BYOS, `drive.file` scope, Express over FastAPI, MongoDB, JWT cookies, and `googleapis` were selected along with trade-offs. |
+| [`documentation/3_api_reference.md`](file:///c:/receipt-collector/documentation/3_api_reference.md) | Complete REST API contract, request/response formats, and design decisions. | Documents every endpoint across Auth, Google Auth, Warranties, and Health with design rationale. |
+| [`documentation/4_build_log.md`](file:///c:/receipt-collector/documentation/4_build_log.md) | Living chronological implementation log and debugging case studies. | Records every completed implementation step along with in-depth gotchas, root causes, and fixes. |
+
 
 ---
 
