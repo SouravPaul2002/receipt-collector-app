@@ -90,7 +90,8 @@ receipt-collector/
 │       └── utils/                      # Shared helper wrappers and classes
 │           ├── ApiError.js             # Standardized operational Error class
 │           ├── ApiResponse.js          # Standardized HTTP JSON success envelope
-│           └── asyncHandler.js         # Promise-based controller wrapper catching errors
+│           ├── asyncHandler.js         # Promise-based controller wrapper catching errors
+│           └── crypto.js               # AES-256-GCM symmetric encryption helper
 │
 └── frontend/                           # 💻 FRONTEND APPLICATION
     └── rc-frontend/                    # Next.js 14+ App Router Project
@@ -130,8 +131,11 @@ receipt-collector/
 - **Why Separate**: Encapsulates data integrity at the database layer. Hooks like auto-calculating `warrantyExpiryDate` on `Product` or hashing passwords on `User` run automatically whenever a document is saved or updated.
 
 ### `/backend/src/utils/`
-- **Purpose**: Houses pure utility classes and higher-order functions used across the entire backend.
-- **Why Separate**: Standardizes error handling and JSON structures across every route. `asyncHandler` eliminates hundreds of repetitive `try/catch` blocks, while `ApiError` and `ApiResponse` guarantee consistent client-facing payloads.
+- **Purpose**: Houses pure utility classes, security helpers, and higher-order functions used across the entire backend.
+- **Why Separate**: Standardizes operational patterns and security functions across every route:
+  - `asyncHandler`: Eliminates hundreds of repetitive `try/catch` blocks.
+  - `ApiError` & `ApiResponse`: Guarantee consistent client-facing payloads and centralized error handling.
+  - `crypto.js`: Encapsulates AES-256-GCM symmetric encryption/decryption logic, ensuring sensitive credentials (like Google Drive refresh tokens) are encrypted before reaching the database layer.
 
 ### `/backend/src/services/` *(Planned)*
 - **Purpose**: Houses domain logic and heavy third-party integrations (Google Drive REST API, OCR extraction, Scheduled cron jobs, Email dispatch).

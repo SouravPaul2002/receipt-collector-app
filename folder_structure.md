@@ -39,7 +39,8 @@ receipt-collector/
 │   │   └── utils/              # Helper utilities
 │   │       ├── ApiError.js
 │   │       ├── ApiResponse.js
-│   │       └── asyncHandler.js
+│   │       ├── asyncHandler.js
+│   │       └── crypto.js       # AES-256-GCM encryption/decryption helper
 │   ├── .env                    # Environment configuration
 │   ├── index.js                # Express app entry point
 │   └── package.json            # Dependencies & scripts

@@ -39,9 +39,36 @@ Receipt Collector does **not** store receipt images/PDFs on a centralized compan
   - The Google consent screen displays a clear, non-intimidating prompt ("Create and edit files that this app creates").
   - It completely avoids Google's costly and lengthy **CASA (Cloud Application Security Assessment)** manual security audit required for broader restricted Drive scopes.
 
-#### Token Security: AES-256-GCM Encryption in DB
-- Google Drive refresh tokens provide persistent access to upload files to the user's Drive.
-- Plaintext storage in MongoDB is a severe security vulnerability. Drive refresh tokens are encrypted using **AES-256-GCM** with a dedicated server secret key (`DRIVE_TOKEN_ENCRYPTION_KEY`) before saving to the database.
+#### Token Security: AES-256-GCM Encryption in DB (`utils/crypto.js`)
+Google Drive refresh tokens grant persistent authorization to upload and manage documents inside the user's Google Drive. Storing these tokens in plaintext in MongoDB is an unacceptable vulnerability in case of database leaks or backups being intercepted.
+
+##### Why Two-Way Encryption (AES-256-GCM) instead of One-Way Hashing (`bcrypt`)?
+- **Passwords use one-way hashing (`bcrypt`)**: The server only needs to verify if an incoming password matches the stored hash (`bcrypt.compare`). The server **never** needs to recover the original plaintext password.
+- **Google Drive tokens require two-way encryption (`crypto.js`)**: To upload receipts to Google Drive on the user's behalf, the backend **must be able to decrypt the token back to its original plain text** so it can pass it to Google's OAuth API.
+
+```
+       Plain Text Token ──► [ encrypt() ] ──► Encrypted String (Saved in MongoDB)
+                                                    │
+                                                    ▼
+(When uploading file) ──► [ decrypt() ] ◄── Read from MongoDB
+                               │
+                               ▼
+                        Plain Text Token ──► Sent to Google Drive API
+```
+
+##### Why AES-256-GCM Specifically?
+1. **AES-256 (256-bit Key)**: Military-grade symmetric encryption using a 32-byte hexadecimal secret key (`ENCRYPTION_KEY` in `.env`).
+2. **GCM Mode (Authenticated Encryption / AEAD)**: Unlike legacy modes like CBC or ECB, GCM provides **both confidentiality (secrecy) and integrity (tamper detection)**.
+3. **Authentication Tag (`authTag`)**: GCM produces a 16-byte cryptographic signature. If an attacker or malicious script tampers with even a single bit of the ciphertext in MongoDB, `decipher.setAuthTag()` detects the discrepancy and throws an error immediately, preventing padding oracle attacks and bit-flipping manipulation.
+4. **Unique Random IV per Encryption**: Every call to `encrypt()` generates a fresh 12-byte random **Initialization Vector (IV)** (`crypto.randomBytes(12)`). Encrypting the same token twice produces completely different ciphertexts, preventing pattern recognition.
+
+##### Serialized Format & Step-by-Step Mechanics
+The encrypted token is serialized as a colon-separated string:
+$$\text{iv} : \text{authTag} : \text{encryptedData}$$
+*(Example: `23f2ca... : 62a196... : 1b270d...`)*
+
+- **`encrypt(text)`**: Generates 12-byte IV $\rightarrow$ Encrypts payload with `aes-256-gcm` $\rightarrow$ Extracts 16-byte Auth Tag $\rightarrow$ Returns `iv:authTag:encryptedData`.
+- **`decrypt(encryptedText)`**: Splits `encryptedText` by `:` $\rightarrow$ Attaches Auth Tag to decipher $\rightarrow$ Reconstructs plaintext. If the key or ciphertext was modified, decryption fails securely.
 
 #### Offline Access & Google Cloud Status Gotcha
 - While an app is in **"Testing"** status in the Google Cloud Console, OAuth refresh tokens expire after **7 days**, regardless of activity.

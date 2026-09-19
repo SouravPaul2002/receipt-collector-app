@@ -46,7 +46,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
-| [`backend/src/models/user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) | Mongoose schema and model for application users. | Defines user fields (`googleId`, `email`, `name`, `password`, `avatar`, `refreshToken`, `driveFolderId`, `preferences`). Uses `bcryptjs` pre-save hook for password hashing and provides instance methods: `isPasswordCorrect`, `generateAccessToken`, and `generateRefreshToken`. |
+| [`backend/src/models/user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) | Mongoose schema and model for application users. | Defines user fields (`googleId`, `email`, `name`, `password`, `avatar`, `refreshToken`, `driveFolderId`, `googleDriveRefreshToken`, `driveConnected`, `preferences`). Uses `bcryptjs` pre-save hook for password hashing and provides instance methods: `isPasswordCorrect`, `generateAccessToken`, and `generateRefreshToken`. |
 | [`backend/src/models/product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js) | Mongoose schema and model for products and warranties. | Stores product metadata (`productName`, `category`, `brand`, `purchaseDate`, `warrantyMonths`, `warrantyExpiryDate`, `driveFileId`, `ocrData`). Features a pre-validation hook auto-calculating `warrantyExpiryDate` from purchase date + warranty duration. |
 | [`backend/src/models/reminder.model.js`](file:///c:/receipt-collector/backend/src/models/reminder.model.js) | Mongoose schema and model for scheduled warranty reminders. | Tracks upcoming reminder notifications (`user`, `product`, `scheduledDate`, `daysBeforeExpiry`, `channel`, `status`, `sentAt`). |
 
@@ -64,6 +64,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | [`backend/src/utils/asyncHandler.js`](file:///c:/receipt-collector/backend/src/utils/asyncHandler.js) | High-order wrapper for async Express route controllers to catch errors automatically. | Wraps async controller functions in a `Promise.resolve().catch(next)` block, eliminating repetitive `try-catch` blocks across all routes. |
 | [`backend/src/utils/ApiError.js`](file:///c:/receipt-collector/backend/src/utils/ApiError.js) | Custom JavaScript Error class for standardized error formatting. | Extends `Error` class with `statusCode`, `message`, `errors` array, and stack trace to ensure consistent error objects across API routes. |
 | [`backend/src/utils/ApiResponse.js`](file:///c:/receipt-collector/backend/src/utils/ApiResponse.js) | Standardized response formatter for successful API calls. | Standardizes success responses with `statusCode`, `data`, `message`, and boolean `success` flag (`statusCode < 400`). |
+| [`backend/src/utils/crypto.js`](file:///c:/receipt-collector/backend/src/utils/crypto.js) | AES-256-GCM symmetric encryption and decryption helper. | Exports `encrypt(text)` and `decrypt(encryptedText)` using `ENCRYPTION_KEY` from environment variables, returning serialized `iv:authTag:encryptedData` for secure storage of Google Drive refresh tokens. |
 
 ### Middlewares (`/backend/src/middlewares`)
 

@@ -35,6 +35,13 @@ const userSchema = new Schema(
         driveFolderId: {
             type: String
         },
+        googleDriveRefreshToken: {
+            type: String
+        },
+        driveConnected: {
+            type: Boolean,
+            default: false
+        },
         preferences: {
             emailNotifications: {
                 type: Boolean,

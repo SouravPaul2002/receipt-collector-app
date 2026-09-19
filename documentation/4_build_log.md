@@ -56,11 +56,14 @@
 
 ---
 
-### [2026-09-19] — Google OAuth 2.0 Login Integration
+### [2026-09-19] — Google OAuth 2.0 Login Integration & AES-256-GCM Token Encryption
 - **What Was Built**:
   - Configured Google OAuth client using `googleapis` in [`googleOAuth.js`](file:///c:/receipt-collector/backend/src/config/googleOAuth.js).
   - Implemented `GET /api/auth/google` to redirect users to Google's consent screen.
   - Implemented `GET /api/auth/google/callback` to exchange authorization codes, verify ID tokens via Google's certificate endpoints, auto-link existing email accounts, generate JWT sessions, and set HTTP-only cookies.
+  - Built AES-256-GCM symmetric encryption helper in [`crypto.js`](file:///c:/receipt-collector/backend/src/utils/crypto.js) for encrypting Google Drive refresh tokens.
+  - Added `googleDriveRefreshToken` and `driveConnected` fields to [`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js).
+  - Generated secure 32-byte `ENCRYPTION_KEY` in `.env`.
   - Mounted routes in [`index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) and established comprehensive project documentation in `/documentation`.
 
 ---
