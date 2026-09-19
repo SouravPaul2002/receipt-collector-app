@@ -2,8 +2,8 @@ import asyncHandler from '../utils/asyncHandler.js'
 import ApiError from '../utils/ApiError.js'
 import ApiResponse from '../utils/ApiResponse.js'
 import Product from '../models/product.model.js'
-import User from '../models/user.model.js'
 import { uploadFileToDrive, deleteFileFromDrive } from '../services/googleDrive.service.js'
+
 
 /**
  * @desc    Create a new warranty / product entry (supports optional receipt file upload to Google Drive)
@@ -30,58 +30,8 @@ export const createWarranty = asyncHandler(async (req, res) => {
         throw new ApiError(400, "productName, purchaseDate, and warrantyMonths are required")
     }
 
-    let driveFileId = undefined
-    let driveFileUrl = undefined
-
-    // IF req.file exists: upload to Google Drive FIRST with DB rollback protection
-    if (req.file) {
-        const user = await User.findById(req.user._id)
-        if (!user || !user.driveConnected || !user.googleDriveRefreshToken) {
-            throw new ApiError(400, "Connect Google Drive before uploading a document")
-        }
-
-        // 1. Upload to Drive first before touching MongoDB
-        const uploadedFile = await uploadFileToDrive({
-            user,
-            fileBuffer: req.file.buffer,
-            fileName: req.file.originalname,
-            mimeType: req.file.mimetype
-        })
-
-        driveFileId = uploadedFile.fileId
-        driveFileUrl = uploadedFile.webViewLink
-
-        // 2. Attempt to create Product document in MongoDB
-        try {
-            const warranty = await Product.create({
-                user: req.user._id,
-                productName,
-                category,
-                brand,
-                modelNumber,
-                serialNumber,
-                purchaseDate: new Date(purchaseDate),
-                price: price ? Number(price) : undefined,
-                currency,
-                retailer,
-                warrantyMonths: Number(warrantyMonths),
-                driveFileId,
-                driveFileUrl,
-                notes
-            })
-
-            return res.status(201).json(
-                new ApiResponse(201, warranty, "Warranty created successfully with receipt")
-            )
-        } catch (dbError) {
-            // ROLLBACK: Delete the just-uploaded Drive file so no orphan file remains
-            await deleteFileFromDrive({ user, fileId: driveFileId })
-            throw dbError
-        }
-    }
-
-    // IF req.file does NOT exist: manual entry without Drive upload
-    const warranty = await Product.create({
+    // Build base warranty data payload once
+    const warrantyPayload = {
         user: req.user._id,
         productName,
         category,
@@ -94,11 +44,49 @@ export const createWarranty = asyncHandler(async (req, res) => {
         retailer,
         warrantyMonths: Number(warrantyMonths),
         notes
-    })
+    }
 
-    return res.status(201).json(
-        new ApiResponse(201, warranty, "Warranty created successfully")
-    )
+    let uploadedFile = null
+
+    // IF req.file exists: upload to Google Drive FIRST with DB rollback protection
+    if (req.file) {
+        // Use req.user directly (already populated by verifyJWT middleware)
+        if (!req.user.driveConnected || !req.user.googleDriveRefreshToken) {
+            throw new ApiError(400, "Connect Google Drive before uploading a document")
+        }
+
+        // 1. Upload to Drive first before touching MongoDB
+        uploadedFile = await uploadFileToDrive({
+            user: req.user,
+            fileBuffer: req.file.buffer,
+            fileName: req.file.originalname,
+            mimeType: req.file.mimetype
+        })
+
+        warrantyPayload.driveFileId = uploadedFile.fileId
+        warrantyPayload.driveFileUrl = uploadedFile.webViewLink
+    }
+
+    // 2. Attempt to create Product document in MongoDB (single unified call)
+    try {
+        const warranty = await Product.create(warrantyPayload)
+
+        return res.status(201).json(
+            new ApiResponse(
+                201,
+                warranty,
+                uploadedFile
+                    ? "Warranty created successfully with receipt"
+                    : "Warranty created successfully"
+            )
+        )
+    } catch (dbError) {
+        // ROLLBACK: Delete the just-uploaded Drive file if DB write fails
+        if (uploadedFile?.fileId) {
+            await deleteFileFromDrive({ user: req.user, fileId: uploadedFile.fileId })
+        }
+        throw dbError
+    }
 })
 
 /**

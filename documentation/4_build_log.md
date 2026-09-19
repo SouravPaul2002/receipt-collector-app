@@ -75,6 +75,7 @@
   - Implemented [`googleDrive.service.js`](file:///c:/receipt-collector/backend/src/services/googleDrive.service.js) handling decrypted OAuth clients, automated "Receipt Collector Vault" folder lookup/creation, direct buffer streaming to Drive API, and rollback deletion.
   - Updated `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) with strict atomic integrity: upload to Drive first, write to MongoDB, and automatically delete the Drive file if MongoDB write fails.
   - Attached `upload.single('invoice')` to `POST /api/warranties` in [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
+  - Refactored `createWarranty` to eliminate redundant `User.findById` re-queries by directly using `req.user` from `verifyJWT`, and unified the `Product.create` payload construction into a single DRY write block with rollback safety.
 
 ---
 
