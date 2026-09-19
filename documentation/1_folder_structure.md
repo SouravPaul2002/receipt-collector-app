@@ -64,7 +64,8 @@ receipt-collector/
 │       │
 │       ├── middlewares/                # Custom Express middlewares
 │       │   ├── auth.middleware.js      # verifyJWT middleware for route protection
-│       │   └── errorHandler.js         # Global centralized error handler
+│       │   ├── errorHandler.js         # Global centralized error handler
+│       │   └── multer.middleware.js    # In-memory multipart file upload middleware
 │       │
 │       ├── models/                     # Mongoose data schemas & DB methods
 │       │   ├── product.model.js        # Warranty / Product item schema with pre-validate hook
@@ -73,19 +74,19 @@ receipt-collector/
 │       │
 │       ├── routes/                     # API route declarations & pipeline binding
 │       │   ├── auth.routes.js          # /api/auth routes (register, login, logout, me, refresh)
-│       │   ├── googleAuth.routes.js    # /api/auth/google OAuth endpoints
+│       │   ├── googleAuth.routes.js    # /api/auth/google & Drive OAuth endpoints
 │       │   ├── health.routes.js        # /api/health uptime check route
 │       │   ├── index.js                # Main router aggregator mounting all sub-routes under /api
-│       │   └── warranty.routes.js      # /api/warranties routes (protected with verifyJWT)
+│       │   └── warranty.routes.js      # /api/warranties routes (protected with verifyJWT & multer)
 │       │
 │       ├── scripts/                    # Standalone diagnostic & DB maintenance scripts
 │       │   ├── testCreateWarranty.js   # Script verifying warranty creation & expiry hook
 │       │   └── testDbCollections.js    # Script checking live Atlas collections
 │       │
-│       ├── services/                   # (Planned) External service integrations
-│       │   ├── googleDrive.service.js  # Drive folder creation, file uploads, permission checks
-│       │   ├── ocr.service.js          # Receipt OCR text extraction pipeline
-│       │   └── reminder.service.js     # Scheduled cron job & notification dispatchers
+│       ├── services/                   # External service integrations
+│       │   ├── googleDrive.service.js  # Google Drive OAuth client, folder management, upload & rollback
+│       │   ├── ocr.service.js          # (Planned) Receipt OCR text extraction pipeline
+│       │   └── reminder.service.js     # (Planned) Scheduled cron job & notification dispatchers
 │       │
 │       └── utils/                      # Shared helper wrappers and classes
 │           ├── ApiError.js             # Standardized operational Error class

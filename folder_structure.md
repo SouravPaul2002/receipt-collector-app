@@ -21,7 +21,8 @@ receipt-collector/
 │   │   │   └── warranty.controller.js
 │   │   ├── middlewares/        # Custom Express middlewares
 │   │   │   ├── auth.middleware.js
-│   │   │   └── errorHandler.js
+│   │   │   ├── errorHandler.js
+│   │   │   └── multer.middleware.js # In-memory file upload middleware
 │   │   ├── models/             # Mongoose Schemas & MongoDB models
 │   │   │   ├── product.model.js
 │   │   │   ├── reminder.model.js
@@ -35,7 +36,8 @@ receipt-collector/
 │   │   ├── scripts/            # Diagnostic & test scripts
 │   │   │   ├── testCreateWarranty.js
 │   │   │   └── testDbCollections.js
-│   │   ├── services/           # Business logic & 3rd party APIs (Drive, OCR)
+│   │   ├── services/           # Business logic & 3rd party APIs
+│   │   │   └── googleDrive.service.js # Google Drive client, folder creation & file upload/deletion
 │   │   └── utils/              # Helper utilities
 │   │       ├── ApiError.js
 │   │       ├── ApiResponse.js

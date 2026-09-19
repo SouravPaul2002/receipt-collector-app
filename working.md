@@ -72,6 +72,13 @@ This document serves as the master registry explaining the **purpose**, **necess
 | :--- | :--- | :--- |
 | [`backend/src/middlewares/errorHandler.js`](file:///c:/receipt-collector/backend/src/middlewares/errorHandler.js) | Centralized global error handling middleware for Express. | Intercepts all errors passed via `next(err)`. Normalizes non-ApiError instances into `ApiError` format and sends a uniform JSON response to the client. |
 | [`backend/src/middlewares/auth.middleware.js`](file:///c:/receipt-collector/backend/src/middlewares/auth.middleware.js) | JWT Token verification middleware (`verifyJWT`). | Extracts JWT Access Token from `cookies` or `Authorization: Bearer` header, verifies signature using `ACCESS_TOKEN_SECRET`, finds user in MongoDB, and attaches `req.user`. |
+| [`backend/src/middlewares/multer.middleware.js`](file:///c:/receipt-collector/backend/src/middlewares/multer.middleware.js) | In-memory multipart/form-data upload middleware using `multer`. | Uses `multer.memoryStorage()`, enforces 10MB limit, filters for images (JPEG, PNG, WEBP, HEIC) and PDF files, and attaches `req.file` for streaming directly to Google Drive. |
+
+### Services (`/backend/src/services`)
+
+| File Path | Necessity / Purpose | Working Mechanism |
+| :--- | :--- | :--- |
+| [`backend/src/services/googleDrive.service.js`](file:///c:/receipt-collector/backend/src/services/googleDrive.service.js) | Google Drive API integration for file and folder management. | Provides `getDriveClient` (decrypts user refresh token), `getOrCreateAppFolder` (creates/locates dedicated "Receipt Collector Vault" folder), `uploadFileToDrive` (streams in-memory file buffer to Drive), and `deleteFileFromDrive` (deletes file on MongoDB rollback). |
 
 ### Controllers (`/backend/src/controllers`)
 
@@ -80,7 +87,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | [`backend/src/controllers/health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js) | Request handler for system health and status checks. | Exports `checkHealth` controller wrapped with `asyncHandler`, returning server uptime, current timestamp, and operational status in `ApiResponse` format. |
 | [`backend/src/controllers/auth.controller.js`](file:///c:/receipt-collector/backend/src/controllers/auth.controller.js) | Request handler for User Authentication & Token management. | Handles `registerUser`, `loginUser`, `logoutUser`, `getCurrentUser`, and `refreshAccessToken`. Generates Access/Refresh tokens, sets HTTP-only cookies, and returns sanitized user data (tokens are excluded from the JSON response body for enhanced security). |
 | [`backend/src/controllers/googleAuth.controller.js`](file:///c:/receipt-collector/backend/src/controllers/googleAuth.controller.js) | Request handler for Google OAuth 2.0 authentication and Google Drive connection flows. | Handles `googleLoginRedirect` & `googleLoginCallback` (login flow, ID token verification, JWT issuance) and `googleDriveConnectRedirect` & `googleDriveConnectCallback` (Drive storage consent flow, offline access, AES-256-GCM encryption of Drive refresh token). |
-| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records with user data isolation. | Exports `createWarranty` (`POST`), `getAllWarranties` (`GET`), `getWarrantyById` (`GET /:id`), `updateWarrantyById` (`PUT /:id`), `deleteAllWarranties` (`DELETE`), and `deleteWarrantyById` (`DELETE /:id`). All queries are scoped strictly to `req.user._id`. |
+| [`backend/src/controllers/warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) | Request handler for full CRUD operations on product warranty records with user data isolation. | Handles `createWarranty` (supports optional file upload to Google Drive with automatic rollback on DB write failure), `getAllWarranties`, `getWarrantyById`, `updateWarrantyById`, `deleteAllWarranties`, and `deleteWarrantyById`. All queries scoped strictly to `req.user._id`. |
 
 ### Routes (`/backend/src/routes`)
 

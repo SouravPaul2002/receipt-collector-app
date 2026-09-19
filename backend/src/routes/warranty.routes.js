@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
+import { upload } from '../middlewares/multer.middleware.js'
 import {
     createWarranty,
     getAllWarranties,
@@ -14,8 +15,9 @@ const router = Router()
 // Apply authentication middleware to all warranty endpoints
 router.use(verifyJWT)
 
-// POST /api/warranties -> create a new warranty
-router.post('/', createWarranty)
+// POST /api/warranties -> create a new warranty (supports optional multipart invoice file upload)
+router.post('/', upload.single('invoice'), createWarranty)
+
 
 // GET /api/warranties -> fetch all warranties for authenticated user
 router.get('/', getAllWarranties)

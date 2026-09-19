@@ -63,8 +63,18 @@
   - Implemented `GET /api/auth/google/callback` to exchange authorization codes, verify ID tokens via Google's certificate endpoints, auto-link existing email accounts, generate JWT sessions, and set HTTP-only cookies.
   - Built AES-256-GCM symmetric encryption helper in [`crypto.js`](file:///c:/receipt-collector/backend/src/utils/crypto.js) for encrypting Google Drive refresh tokens.
   - Added `googleDriveRefreshToken` and `driveConnected` fields to [`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js).
+  - Implemented `GET /api/auth/google/drive/connect` and `GET /api/auth/google/drive/callback` for connecting Google Drive storage with `drive.file` scope and `offline` access.
   - Generated secure 32-byte `ENCRYPTION_KEY` in `.env`.
   - Mounted routes in [`index.js`](file:///c:/receipt-collector/backend/src/routes/index.js) and established comprehensive project documentation in `/documentation`.
+
+---
+
+### [2026-09-19] — Atomic Google Drive Upload Pipeline with Rollback (Step 2 Completed)
+- **What Was Built**:
+  - Implemented [`multer.middleware.js`](file:///c:/receipt-collector/backend/src/middlewares/multer.middleware.js) using memory storage, 10MB limit, and MIME validation for JPEG, PNG, WEBP, HEIC, and PDF.
+  - Implemented [`googleDrive.service.js`](file:///c:/receipt-collector/backend/src/services/googleDrive.service.js) handling decrypted OAuth clients, automated "Receipt Collector Vault" folder lookup/creation, direct buffer streaming to Drive API, and rollback deletion.
+  - Updated `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) with strict atomic integrity: upload to Drive first, write to MongoDB, and automatically delete the Drive file if MongoDB write fails.
+  - Attached `upload.single('invoice')` to `POST /api/warranties` in [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
 
 ---
 

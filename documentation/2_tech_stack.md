@@ -94,6 +94,45 @@ Google OAuth is strictly split into **two distinct flows**:
 
 ---
 
+### Decision 2B: Atomic Google Drive Upload & Database Rollback (Zero Orphaned Files Guarantee)
+
+#### The Problem
+When integrating third-party cloud storage (Google Drive) with a database (MongoDB), two distinct failure modes can corrupt data integrity:
+1. **Dangling DB Record**: If MongoDB writes first and Drive upload fails, the database has a record pointing to a non-existent file.
+2. **Orphaned Cloud File**: If Drive uploads first and MongoDB validation/write fails, a useless file remains in the user's Google Drive taking up space with no matching database record.
+
+#### The Architectural Solution & Flowchart
+To solve this, we implemented an **atomic upload-first pipeline with automatic rollback**:
+
+```mermaid
+flowchart TD
+    A["POST /api/warranties (Multipart Form)"] --> B["verifyJWT (req.user available)"]
+    B --> C["multer.memoryStorage() (req.file in Buffer)"]
+    C --> D{"Does req.file exist?"}
+
+    D -- "NO" --> E["Create Product document in MongoDB (No Drive fields)"]
+    E --> F["Return 201 Created (Success)"]
+
+    D -- "YES" --> G{"Is user.driveConnected === true?"}
+    G -- "NO" --> H["Reject 400: Connect Google Drive before uploading"]
+
+    G -- "YES" --> I["Upload file buffer to Google Drive FIRST"]
+    I -- "Drive Upload Fails" --> J["Reject 500: Drive upload failed (Nothing written to DB)"]
+
+    I -- "Drive Upload Succeeds" --> K["Attempt Product.create() with driveFileId & driveFileUrl"]
+    K -- "MongoDB Write FAILS" --> L["ROLLBACK: Delete uploaded file from Drive via deleteFileFromDrive()"]
+    L --> M["Reject Error: DB write failed (Zero Orphaned Files Left)"]
+
+    K -- "MongoDB Write SUCCEEDS" --> N["Return 201 Created (Drive & DB 100% in Sync)"]
+```
+
+#### Why This Guarantees 100% Integrity
+- **Upload First**: MongoDB is never touched until the file is physically confirmed in Google Drive.
+- **Immediate Rejection on Drive Failure**: If the Drive API is down or token expired, the request aborts instantly with zero database writes.
+- **Automatic Rollback**: If MongoDB validation fails (e.g. invalid date or missing required field) or DB connection drops, the `catch` block triggers `deleteFileFromDrive({ user, fileId })` before returning the error.
+
+---
+
 ### Decision 3: Express.js (Node.js ESM) vs. FastAPI (Python)
 
 #### The Decision

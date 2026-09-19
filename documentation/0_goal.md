@@ -44,6 +44,21 @@ Purchase Product ──► Store in Vault & Drive ──► Automated Reminders 
   2. **High Trust & Data Ownership**: Users retain complete sovereignty over their documents. If they ever stop using Receipt Collector, their invoices remain safely in their own Google Drive.
   3. **Privacy-Focused Scope (`drive.file`)**: The app requests permission only to view and manage files that the app itself creates. It cannot view, read, or modify any other files in the user's Drive.
 
+#### Atomic Upload & Rollback Flow:
+```mermaid
+flowchart TD
+    A["User submits POST /api/warranties"] --> B{"File attached in form?"}
+    B -- "No file" --> C["Save Product in MongoDB (No Drive fields)"]
+    B -- "File attached" --> D{"user.driveConnected === true?"}
+    D -- "False" --> E["Reject 400: Connect Drive first"]
+    D -- "True" --> F["Upload buffer to user's Google Drive"]
+    F -- "Drive Error" --> G["Reject 500: Abort (No DB write)"]
+    F -- "Drive Success" --> H["Attempt Product.create() in DB"]
+    H -- "DB Error" --> I["ROLLBACK: Delete uploaded Drive file"]
+    I --> J["Reject Error (Zero Orphaned Files)"]
+    H -- "DB Success" --> K["Return 201 Created (In Sync)"]
+```
+
 ---
 
 ### Feature 3: Expiry Tracking & Automated Reminder Engine

@@ -183,23 +183,21 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
 
 ### `POST /api/warranties`
 - **Access**: Private (Requires `verifyJWT`)
-- **Description**: Creates a new product/warranty entry in the vault.
-- **Request Body**:
-  ```json
-  {
-    "productName": "Sony WH-1000XM5 Headphones",
-    "category": "Electronics",
-    "brand": "Sony",
-    "modelNumber": "WH1000XM5/B",
-    "serialNumber": "SN-987654321",
-    "purchaseDate": "2026-01-15",
-    "price": 399.99,
-    "currency": "USD",
-    "retailer": "Best Buy",
-    "warrantyMonths": 24,
-    "notes": "Includes 2-year manufacturer coverage for parts and labor."
-  }
-  ```
+- **Content-Type**: `multipart/form-data` OR `application/json`
+- **Description**: Creates a new product/warranty entry in the vault, with optional invoice/receipt file upload streamed directly to the user's personal Google Drive.
+- **Form Fields**:
+  - `productName` (string, required): Name of the item
+  - `purchaseDate` (date string `YYYY-MM-DD`, required): Date of purchase
+  - `warrantyMonths` (number, required): Coverage period in months
+  - `category` (string, optional): E.g., 'Electronics', 'Appliances'
+  - `brand` (string, optional): Manufacturer brand
+  - `modelNumber` (string, optional): Product model
+  - `serialNumber` (string, optional): Serial or IMEI
+  - `price` (number, optional): Purchase amount
+  - `currency` (string, optional): Default 'USD'
+  - `retailer` (string, optional): Store / seller name
+  - `notes` (string, optional): Miscellaneous coverage notes
+  - `invoice` (file binary, **OPTIONAL**): Receipt/invoice image (JPEG, PNG, WEBP, HEIC) or PDF (max 10MB)
 - **Response** (`201 Created`):
   ```json
   {
@@ -213,13 +211,21 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
       "purchaseDate": "2026-01-15T00:00:00.000Z",
       "warrantyMonths": 24,
       "warrantyExpiryDate": "2028-01-15T00:00:00.000Z",
+      "driveFileId": "1a2b3c4d5e6f7g8h9i0j",
+      "driveFileUrl": "https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j/view",
       "createdAt": "2026-09-19T10:05:00.000Z"
     },
-    "message": "Warranty created successfully",
+    "message": "Warranty created successfully with receipt",
     "success": true
   }
   ```
-- **Design Note**: The `warrantyExpiryDate` is automatically calculated in the Mongoose pre-validate hook (`purchaseDate + warrantyMonths`). The `user` field is always bound to `req.user._id`, ignoring any spoofed user IDs in `req.body`.
+- **Atomic Drive Upload & Rollback Design**:
+  - If `req.file` is provided:
+    1. Verifies `user.driveConnected === true`. If false, rejects with `400 "Connect Google Drive before uploading a document"`.
+    2. Uploads the file buffer to Google Drive **FIRST**.
+    3. Writes the document to MongoDB. If the DB write fails, it executes an automatic rollback (`deleteFileFromDrive()`) to prevent orphaned files in the user's Drive.
+  - If `req.file` is not provided: Standard manual entry without Google Drive involvement.
+
 
 ---
 
