@@ -18,6 +18,7 @@ This document tracks all completed features, architectural implementations, and 
   - [x] Delete single warranty controller (`DELETE /api/warranties/:id`) & route mounting
   - [x] Update warranty CRUD API (`PUT /api/warranties/:id`) & route mounting
   - [x] JWT Authentication & Token Management (`jsonwebtoken`, `bcryptjs`)
+  - [x] Google OAuth 2.0 Login & Account Auto-Linking (`GET /api/auth/google`, `GET /api/auth/google/callback`)
   - [x] User Registration endpoint (`POST /api/auth/register`)
   - [x] User Login endpoint (`POST /api/auth/login`)
   - [x] User Logout endpoint (`POST /api/auth/logout`)
@@ -56,6 +57,7 @@ This document tracks all completed features, architectural implementations, and 
 
 ### 3. Database Layer (MongoDB Atlas & Mongoose)
 - **[`db.js`](file:///c:/receipt-collector/backend/src/config/db.js)**: Async database connection module using `process.env.DATABASE_URI`.
+- **[`googleOAuth.js`](file:///c:/receipt-collector/backend/src/config/googleOAuth.js)**: Google OAuth 2.0 client initialization with `googleapis`.
 - **[`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js)**: User profile, password hashing (`bcryptjs`), Google OAuth info, refresh tokens, notification preferences, and JWT token generator methods (`generateAccessToken`, `generateRefreshToken`).
 - **[`product.model.js`](file:///c:/receipt-collector/backend/src/models/product.model.js)**: Product/Warranty Vault items with pre-validation hook for calculating `warrantyExpiryDate`. Fixed Mongoose v9 hook compatibility (`TypeError: next is not a function`).
 - **[`reminder.model.js`](file:///c:/receipt-collector/backend/src/models/reminder.model.js)**: Expiry notification schedules (`scheduledDate`, `daysBeforeExpiry`, `channel`, `status`).
@@ -63,6 +65,8 @@ This document tracks all completed features, architectural implementations, and 
 ### 4. API Endpoints & Routes
 - **Health Check API**: `GET /api/health` mapped via [`health.controller.js`](file:///c:/receipt-collector/backend/src/controllers/health.controller.js).
 - **User Authentication APIs**:
+  - `GET /api/auth/google` (Redirect to Google OAuth 2.0 consent screen)
+  - `GET /api/auth/google/callback` (Handle Google OAuth callback, ID token verification, and JWT issuance)
   - `POST /api/auth/register` (Register user, hash password, return tokens)
   - `POST /api/auth/login` (Login user, verify password, return tokens)
   - `POST /api/auth/logout` (Logout user, clear tokens and cookies)

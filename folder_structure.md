@@ -11,10 +11,12 @@ receipt-collector/
 ├── working.md                  # Registry of every file's function, purpose & mechanism
 ├── backend/
 │   ├── src/
-│   │   ├── config/             # DB & App configuration (MongoDB connection)
-│   │   │   └── db.js
+│   │   ├── config/             # DB & App configuration (MongoDB connection, Google OAuth)
+│   │   │   ├── db.js
+│   │   │   └── googleOAuth.js
 │   │   ├── controllers/        # Request handlers & HTTP responses
 │   │   │   ├── auth.controller.js
+│   │   │   ├── googleAuth.controller.js
 │   │   │   ├── health.controller.js
 │   │   │   └── warranty.controller.js
 │   │   ├── middlewares/        # Custom Express middlewares
@@ -26,6 +28,7 @@ receipt-collector/
 │   │   │   └── user.model.js
 │   │   ├── routes/             # API Route definitions
 │   │   │   ├── auth.routes.js
+│   │   │   ├── googleAuth.routes.js
 │   │   │   ├── health.routes.js
 │   │   │   ├── index.js        # Main API router aggregator (/api)
 │   │   │   └── warranty.routes.js
