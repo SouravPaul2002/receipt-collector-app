@@ -19,6 +19,8 @@ receipt-collector/
 │   │   │   ├── googleAuth.controller.js
 │   │   │   ├── health.controller.js
 │   │   │   └── warranty.controller.js
+│   │   ├── jobs/               # Background cron workers
+│   │   │   └── reminder.job.js # Scheduled reminder worker via node-cron
 │   │   ├── middlewares/        # Custom Express middlewares
 │   │   │   ├── auth.middleware.js
 │   │   │   ├── errorHandler.js
@@ -37,13 +39,15 @@ receipt-collector/
 │   │   │   ├── testCreateWarranty.js
 │   │   │   └── testDbCollections.js
 │   │   ├── services/           # Business logic & 3rd party APIs
+│   │   │   ├── email.service.js       # Transactional email sender via Nodemailer
 │   │   │   ├── googleDrive.service.js # Google Drive client, folder creation & file upload/deletion
-│   │   │   └── reminder.service.js    # Multi-channel reminder generator based on user preferences
+│   │   │   └── reminder.service.js    # Multi-channel reminder generator & batch processor
 │   │   └── utils/              # Helper utilities
 │   │       ├── ApiError.js
 │   │       ├── ApiResponse.js
 │   │       ├── asyncHandler.js
 │   │       └── crypto.js       # AES-256-GCM encryption/decryption helper
+
 │   ├── .env                    # Environment configuration
 │   ├── index.js                # Express app entry point
 │   └── package.json            # Dependencies & scripts

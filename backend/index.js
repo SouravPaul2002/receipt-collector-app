@@ -6,6 +6,7 @@ import connectDB from './src/config/db.js'
 import apiRoutes from './src/routes/index.js'
 import errorHandler from './src/middlewares/errorHandler.js'
 import ApiError from './src/utils/ApiError.js'
+import { startReminderCron } from './src/jobs/reminder.job.js'
 
 
 const app = express()
@@ -41,6 +42,8 @@ connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running at: http://localhost:${PORT}`)
     })
+    startReminderCron()
 }).catch((err) => {
     console.error("Failed to start server due to DB connection error:", err)
 })
+

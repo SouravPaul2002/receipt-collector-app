@@ -77,11 +77,15 @@
   - Attached `upload.single('invoice')` to `POST /api/warranties` in [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
   - Refactored `createWarranty` to eliminate redundant `User.findById` re-queries by directly using `req.user` from `verifyJWT`, and unified the `Product.create` payload construction into a single DRY write block with rollback safety.
 
-### [2026-09-19] — Expiry Calculation & Automated Reminder Generation Engine (Step 3)
+### [2026-09-19] — Expiry Calculation & Automated Reminder Engine Complete (Step 3 Completed)
 - **What Was Built**:
   - Extended [`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) with `preferences` object (`notificationChannels` with `email`, `webPush`, `whatsApp`, and `reminderDaysBefore` default `[30, 7, 1]`).
   - Created [`reminder.service.js`](file:///c:/receipt-collector/backend/src/services/reminder.service.js) with `generateRemindersForProduct` to calculate scheduled dates relative to `warrantyExpiryDate`, filter out dates in the past, and batch-create pending reminder documents via `Reminder.insertMany`.
   - Hooked reminder creation directly into `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) inside a non-blocking `try/catch` block to ensure notification errors never fail the core warranty creation response.
+  - Implemented [`email.service.js`](file:///c:/receipt-collector/backend/src/services/email.service.js) using `nodemailer` Gmail transporter to format and dispatch warranty expiry notices to users.
+  - Built `processDueReminders()` in [`reminder.service.js`](file:///c:/receipt-collector/backend/src/services/reminder.service.js) to query pending reminders whose `scheduledDate <= new Date()`, populate product and user info, dispatch emails, guard against deleted/orphaned records, and update reminder status (`sent` with `sentAt` timestamp or `failed`).
+  - Created scheduled cron worker [`reminder.job.js`](file:///c:/receipt-collector/backend/src/jobs/reminder.job.js) via `node-cron` running hourly on DB connection start.
+
 
 ---
 
@@ -209,4 +213,18 @@
   - Added `daysBeforeExpiry: daysBefore` to each document in `reminderDocs.push(...)`.
   - In `warranty.controller.js`: Corrected the argument to `await generateRemindersForProduct(warranty, req.user)`.
 - **Lesson**: Verify schema requirements against document creation payloads, always verify default vs named module exports, and match deeply nested subdocument structures in models.
+
+---
+
+### Gotcha 10: Background Job Relative Import Paths & Orphaned Document Handling
+- **Symptom**: Application failed to start or crashed on boot with `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../backend/services/reminder.service.js' imported from .../backend/jobs/reminder.job.js`.
+- **Root Cause**:
+  1. Placing `jobs` at `backend/jobs/` caused `../services/reminder.service.js` to look for a non-existent `backend/services/` folder instead of `backend/src/services/`.
+  2. In `processDueReminders()`, calling `reminder.user.email` or `reminder.product.productName` without verifying populated references would crash with `TypeError` if a user or product was deleted from the database.
+- **Fix**:
+  - Moved background jobs inside the MVC hierarchy at [`backend/src/jobs/reminder.job.js`](file:///c:/receipt-collector/backend/src/jobs/reminder.job.js) and imported into [`backend/index.js`](file:///c:/receipt-collector/backend/index.js) via `./src/jobs/reminder.job.js`.
+  - Deferred cron execution in `index.js` until after `connectDB()` resolves successfully.
+  - Added a defensive null-guard in `processDueReminders()` (`if (!reminder.user || !reminder.product)`) to safely log warnings, mark orphaned reminders as failed, and continue processing remaining items.
+- **Lesson**: Keep all backend components unified inside `src/` to maintain consistent relative import trees, and always add null-checks on populated Mongoose references.
+
 
