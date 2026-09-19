@@ -3,6 +3,7 @@ import ApiError from '../utils/ApiError.js'
 import ApiResponse from '../utils/ApiResponse.js'
 import Product from '../models/product.model.js'
 import { uploadFileToDrive, deleteFileFromDrive } from '../services/googleDrive.service.js'
+import { generateRemindersForProduct } from '../services/reminder.service.js'
 
 
 /**
@@ -70,6 +71,12 @@ export const createWarranty = asyncHandler(async (req, res) => {
     // 2. Attempt to create Product document in MongoDB (single unified call)
     try {
         const warranty = await Product.create(warrantyPayload)
+
+        try {
+            await generateRemindersForProduct(warranty, req.user)
+        } catch (reminderError) {
+            console.error('Failed to generate reminders for product', warranty._id, reminderError)
+        }
 
         return res.status(201).json(
             new ApiResponse(

@@ -37,7 +37,8 @@ receipt-collector/
 │   │   │   ├── testCreateWarranty.js
 │   │   │   └── testDbCollections.js
 │   │   ├── services/           # Business logic & 3rd party APIs
-│   │   │   └── googleDrive.service.js # Google Drive client, folder creation & file upload/deletion
+│   │   │   ├── googleDrive.service.js # Google Drive client, folder creation & file upload/deletion
+│   │   │   └── reminder.service.js    # Multi-channel reminder generator based on user preferences
 │   │   └── utils/              # Helper utilities
 │   │       ├── ApiError.js
 │   │       ├── ApiResponse.js

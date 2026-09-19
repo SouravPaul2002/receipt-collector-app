@@ -77,6 +77,12 @@
   - Attached `upload.single('invoice')` to `POST /api/warranties` in [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
   - Refactored `createWarranty` to eliminate redundant `User.findById` re-queries by directly using `req.user` from `verifyJWT`, and unified the `Product.create` payload construction into a single DRY write block with rollback safety.
 
+### [2026-09-19] — Expiry Calculation & Automated Reminder Generation Engine (Step 3)
+- **What Was Built**:
+  - Extended [`user.model.js`](file:///c:/receipt-collector/backend/src/models/user.model.js) with `preferences` object (`notificationChannels` with `email`, `webPush`, `whatsApp`, and `reminderDaysBefore` default `[30, 7, 1]`).
+  - Created [`reminder.service.js`](file:///c:/receipt-collector/backend/src/services/reminder.service.js) with `generateRemindersForProduct` to calculate scheduled dates relative to `warrantyExpiryDate`, filter out dates in the past, and batch-create pending reminder documents via `Reminder.insertMany`.
+  - Hooked reminder creation directly into `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) inside a non-blocking `try/catch` block to ensure notification errors never fail the core warranty creation response.
+
 ---
 
 ## 2. Gotchas, Bugs & Lessons Learned (Case Studies)
@@ -187,3 +193,20 @@
   - In `googleAuth.routes.js`: `import { Router } from 'express'; const router = Router()`.
   - Added `.js` extensions to all relative imports and added missing `asyncHandler` and `ApiError` imports in `googleAuth.controller.js`.
 - **Lesson**: Always run `node --check` across modified files to catch ES Module import and syntax errors before deploying.
+
+---
+
+### Gotcha 9: Reminder Generation ES Module Import, Preferences Path & Required Schema Field Bugs
+- **Symptom**: Reminder documents failed to create when a warranty was registered, or threw `TypeError: Cannot read properties of undefined (reading 'insertMany')` or Mongoose `ValidationError`.
+- **Root Cause**:
+  1. `reminder.service.js` used named import `import { Reminder } from '../models/reminder.model.js'`, but `reminder.model.js` exported `Reminder` as default (`export default Reminder`).
+  2. `reminder.service.js` attempted to access `user.notificationChannels` and `user.reminderDaysBefore`, whereas `user.model.js` nests these properties under `user.preferences`. Consequently, `enabledChannels` evaluated to `[]` and silently exited without generating reminders.
+  3. `reminder.model.js` marks `daysBeforeExpiry: { type: Number, required: true }`, but the payload constructed in `reminder.service.js` omitted `daysBeforeExpiry`, triggering Mongoose validation errors during `insertMany`.
+  4. In `warranty.controller.js`, `generateRemindersForProduct(product, req.user)` was referenced instead of the actual local variable `warranty`.
+- **Fix**:
+  - In `reminder.service.js`: Changed to `import Reminder from '../models/reminder.model.js'`.
+  - Added fallback path resolution for `user.preferences?.notificationChannels || user.notificationChannels` and `user.preferences?.reminderDaysBefore || user.reminderDaysBefore`.
+  - Added `daysBeforeExpiry: daysBefore` to each document in `reminderDocs.push(...)`.
+  - In `warranty.controller.js`: Corrected the argument to `await generateRemindersForProduct(warranty, req.user)`.
+- **Lesson**: Verify schema requirements against document creation payloads, always verify default vs named module exports, and match deeply nested subdocument structures in models.
+

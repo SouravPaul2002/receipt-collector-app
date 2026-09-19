@@ -79,6 +79,7 @@ This document serves as the master registry explaining the **purpose**, **necess
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
 | [`backend/src/services/googleDrive.service.js`](file:///c:/receipt-collector/backend/src/services/googleDrive.service.js) | Google Drive API integration for file and folder management. | Provides `getDriveClient` (decrypts user refresh token), `getOrCreateAppFolder` (creates/locates dedicated "Receipt Collector Vault" folder), `uploadFileToDrive` (streams in-memory file buffer to Drive), and `deleteFileFromDrive` (deletes file on MongoDB rollback). |
+| [`backend/src/services/reminder.service.js`](file:///c:/receipt-collector/backend/src/services/reminder.service.js) | Expiry calculation & automated multi-channel reminder generation service. | Calculates scheduled notification dates based on warranty expiration date and user preferences (`preferences.reminderDaysBefore`, `preferences.notificationChannels`), skips past dates, and batch inserts pending reminder records into MongoDB via `Reminder.insertMany`. |
 
 ### Controllers (`/backend/src/controllers`)
 

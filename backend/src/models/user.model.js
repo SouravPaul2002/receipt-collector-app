@@ -43,9 +43,10 @@ const userSchema = new Schema(
             default: false
         },
         preferences: {
-            emailNotifications: {
-                type: Boolean,
-                default: true
+            notificationChannels: {
+                email: { type: Boolean , default: true},
+                webPush: {type: Boolean, default: false},
+                whatsApp: {type: Boolean, default: false}
             },
             reminderDaysBefore: {
                 type: [Number],

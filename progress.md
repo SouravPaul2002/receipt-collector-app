@@ -31,10 +31,13 @@ This document tracks all completed features, architectural implementations, and 
   - [x] Backend file upload endpoint & Google Drive API client (create folder, in-memory stream upload, rollback deletion)
   - [x] Store Drive `fileId` and web URL in `Product` document with atomic rollback protection
 
-- **Step 3: Expiry Calculation & Reminder Engine** $\rightarrow$ **Pending (0%)**
+- **Step 3: Expiry Calculation & Reminder Engine** $\rightarrow$ **In Progress (50%)**
   - [x] Automatic pre-validation & update expiry calculation (`purchaseDate` + `warrantyMonths` $\rightarrow$ `warrantyExpiryDate`)
-  - [ ] Scheduled cron job / worker for checking expiring warranties
-  - [ ] Notification delivery (Email / Push / WhatsApp)
+  - [x] User notification preferences schema (`notificationChannels`, `reminderDaysBefore`)
+  - [x] Automated reminder document generation engine (`generateRemindersForProduct` in `reminder.service.js`) integrated into warranty creation
+  - [ ] Scheduled cron job / worker for dispatching expiring warranties (`Reminder.find({ status: 'pending', scheduledDate: { $lte: new Date() } })`)
+  - [ ] Transactional email provider integration (Nodemailer / Resend / SendGrid)
+
 
 - **Step 4: OCR Auto-Extraction** $\rightarrow$ **Pending (0%)**
 - **Step 5: Claim Assistance & Checklists** $\rightarrow$ **Pending (0%)**
