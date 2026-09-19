@@ -109,15 +109,16 @@ This document serves as the master registry explaining the **purpose**, **necess
 
 ---
 
-## 3. Frontend Application (`/frontend/rc-frontend`)
+## 3. Frontend Application (`/frontend`)
 
 | File Path | Necessity / Purpose | Working Mechanism |
 | :--- | :--- | :--- |
-| [`frontend/rc-frontend/package.json`](file:///c:/receipt-collector/frontend/rc-frontend/package.json) | Frontend project dependencies and scripts for Next.js app. | Manages React, Next.js, and CSS dependencies; defines scripts (`dev`, `build`, `start`, `lint`). |
-| [`frontend/rc-frontend/next.config.mjs`](file:///c:/receipt-collector/frontend/rc-frontend/next.config.mjs) | Next.js configuration options. | Customizes Next.js build settings, headers, redirects, or image optimization configs. |
-| [`frontend/rc-frontend/postcss.config.mjs`](file:///c:/receipt-collector/frontend/rc-frontend/postcss.config.mjs) | PostCSS configuration file. | Configures CSS plugins (e.g. TailwindCSS or Autoprefixer). |
-| [`frontend/rc-frontend/eslint.config.mjs`](file:///c:/receipt-collector/frontend/rc-frontend/eslint.config.mjs) | ESLint configuration for code quality & formatting rules. | Extends `next/core-web-vitals` rules. |
-| [`frontend/rc-frontend/jsconfig.json`](file:///c:/receipt-collector/frontend/rc-frontend/jsconfig.json) | JavaScript project configuration & module path aliases. | Configures `@/*` alias pointing to `./src/*` for clean imports. |
-| [`frontend/rc-frontend/src/app/layout.js`](file:///c:/receipt-collector/frontend/rc-frontend/src/app/layout.js) | Root HTML layout component for Next.js App Router. | Wraps all pages with html/body elements, fonts (Geist), global CSS, and page metadata. |
-| [`frontend/rc-frontend/src/app/page.js`](file:///c:/receipt-collector/frontend/rc-frontend/src/app/page.js) | Landing page component (`/`). | Renders the primary user landing page interface. |
-| [`frontend/rc-frontend/src/app/globals.css`](file:///c:/receipt-collector/frontend/rc-frontend/src/app/globals.css) | Global CSS styles & font variables. | Declares global Tailwind directives, custom CSS properties, and font definitions. |
+| [`frontend/package.json`](file:///c:/receipt-collector/frontend/package.json) | Frontend project dependencies and scripts for Next.js app. | Manages Next.js 16, React 19, TailwindCSS v4, TypeScript dependencies; defines scripts (`dev`, `build`, `start`, `lint`). |
+| [`frontend/tsconfig.json`](file:///c:/receipt-collector/frontend/tsconfig.json) | TypeScript configuration options & module path aliases. | Configures `@/*` alias pointing to `./*` for clean imports. |
+| [`frontend/next.config.ts`](file:///c:/receipt-collector/frontend/next.config.ts) | Next.js configuration options. | Customizes Next.js build settings and config in TypeScript. |
+| [`frontend/postcss.config.mjs`](file:///c:/receipt-collector/frontend/postcss.config.mjs) | PostCSS configuration file. | Configures `@tailwindcss/postcss` plugin for TailwindCSS v4. |
+| [`frontend/eslint.config.mjs`](file:///c:/receipt-collector/frontend/eslint.config.mjs) | ESLint configuration for code quality & formatting rules. | Extends `next/core-web-vitals` rules. |
+| [`frontend/app/layout.tsx`](file:///c:/receipt-collector/frontend/app/layout.tsx) | Root HTML layout component for Next.js App Router. | Wraps all pages with html/body elements, Geist fonts, global CSS, and page metadata. |
+| [`frontend/app/page.tsx`](file:///c:/receipt-collector/frontend/app/page.tsx) | Landing / Dashboard root page component (`/`). | Renders the primary user interface. |
+| [`frontend/app/globals.css`](file:///c:/receipt-collector/frontend/app/globals.css) | Global CSS styles with TailwindCSS v4 `@import "tailwindcss"`. | Declares global styles and CSS variables for light/dark themes. |
+

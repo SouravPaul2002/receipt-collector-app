@@ -1,8 +1,12 @@
 # dependencies
 **/node_modules
+**/.pnp
+**/.pnp.*
+**/.yarn/*
 
 # environment variables
 **/.env
+**/.env.*
 **/.env*.local
 
 # next.js build output
@@ -22,6 +26,7 @@
 **/*.log
 **/npm-debug.log*
 **/yarn-debug.log*
+**/yarn-error.log*
 **/pnpm-debug.log*
 
 # runtime data (backend)
@@ -40,4 +45,4 @@
 .idea/
 
 # vercel
-.vercel
+.vercel

@@ -51,5 +51,17 @@ receipt-collector/
 │   ├── .env                    # Environment configuration
 │   ├── index.js                # Express app entry point
 │   └── package.json            # Dependencies & scripts
-└── frontend/                   # React / Next.js frontend application
+└── frontend/                   # Next.js 16 + React 19 + Tailwind v4 + TypeScript app
+    ├── app/
+    │   ├── favicon.ico
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    ├── public/
+    ├── eslint.config.mjs
+    ├── next.config.ts
+    ├── package.json
+    ├── postcss.config.mjs
+    └── tsconfig.json
 ```
+
