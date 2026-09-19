@@ -101,13 +101,19 @@ When integrating third-party cloud storage (Google Drive) with a database (Mongo
 1. **Dangling DB Record**: If MongoDB writes first and Drive upload fails, the database has a record pointing to a non-existent file.
 2. **Orphaned Cloud File**: If Drive uploads first and MongoDB validation/write fails, a useless file remains in the user's Google Drive taking up space with no matching database record.
 
+#### Architectural Choice: "Option A" (Single Multipart Form) vs "Option B" (Two-Step Upload)
+We explicitly chose **Option A** — handling file upload directly within `POST /api/warranties` as a `multipart/form-data` payload, rather than creating a warranty first and attaching the file in a secondary endpoint.
+- **Why Option A**:
+  - **Simpler Frontend UX**: The user fills in the warranty details, selects an invoice file, and clicks "Save" once.
+  - **No Half-Created States**: Prevents lingering incomplete states where a user creates a warranty record but the secondary file upload fails or is abandoned before completion.
+
 #### The Architectural Solution & Flowchart
 To solve this, we implemented an **atomic upload-first pipeline with automatic rollback**:
 
 ```mermaid
 flowchart TD
     A["POST /api/warranties (Multipart Form)"] --> B["verifyJWT (req.user available)"]
-    B --> C["multer.memoryStorage() (req.file in Buffer)"]
+    B --> C["multer.memoryStorage() (req.file in Buffer, field: 'invoice')"]
     C --> D{"Does req.file exist?"}
 
     D -- "NO" --> E["Create Product document in MongoDB (No Drive fields)"]
@@ -126,10 +132,13 @@ flowchart TD
     K -- "MongoDB Write SUCCEEDS" --> N["Return 201 Created (Drive & DB 100% in Sync)"]
 ```
 
-#### Why This Guarantees 100% Integrity
-- **Upload First**: MongoDB is never touched until the file is physically confirmed in Google Drive.
-- **Immediate Rejection on Drive Failure**: If the Drive API is down or token expired, the request aborts instantly with zero database writes.
-- **Automatic Rollback**: If MongoDB validation fails (e.g. invalid date or missing required field) or DB connection drops, the `catch` block triggers `deleteFileFromDrive({ user, fileId })` before returning the error.
+#### Key Rules Enforced:
+1. **Drive Connection Required ONLY for File Upload**: Users who only want manual warranty tracking without linking Google Drive can create warranties freely. Drive connection (`user.driveConnected === true`) is only enforced when `req.file` is present.
+2. **Multer Memory Storage (`multer.memoryStorage()`)**: In-memory buffering eliminates temporary disk files on the server. Files stream directly from memory buffer to Google Drive API.
+3. **Dedicated Vault Folder with Fallback**: Files are saved into an auto-managed `"Receipt Collector Vault"` folder in the user's Drive. If the saved `driveFolderId` was deleted manually by the user in Google Drive, the service detects the missing folder and automatically recreates it.
+4. **Per-Request Fresh `OAuth2Client` (Concurrency Protection)**:
+   - Instead of sharing a global singleton OAuth client for Drive API calls, `getDriveClient(user)` instantiates a fresh `new google.auth.OAuth2()` instance per request.
+   - *Why*: A shared singleton client with `setCredentials()` creates a critical race condition where concurrent requests from User A and User B could overwrite each other's credentials in flight.
 
 ---
 
@@ -187,7 +196,55 @@ Client Request ──► [AccessToken (15m)] valid? ──► Execute Controller
 ### Decision 6: Decoupling Reminders & ML from Google Drive Tokens
 
 1. **Reminders Are Independent of OAuth**:
-   - Scheduled expiration reminder emails do **not** touch Google Drive. They read `warrantyExpiryDate` and `user.email` from MongoDB and dispatch via an independent transactional email service (SES/SendGrid). A revoked Google Drive token will never prevent a user from receiving their expiry reminder.
+   - Scheduled expiration reminder emails do **not** touch Google Drive. They read `warrantyExpiryDate` and `user.email` from MongoDB and dispatch via an independent transactional email service (Nodemailer / Gmail SMTP). A revoked Google Drive token will never prevent a user from receiving their expiry reminder.
 2. **ML & OCR Do Not Re-Fetch From Drive**:
    - When a receipt is uploaded, OCR extraction runs **immediately** in memory. The structured result is saved directly into `product.ocrData` in MongoDB.
    - Future ML features read from the local `ocrData` field, avoiding slow Google Drive API network calls.
+
+---
+
+### Decision 7: Notification Channels Architecture & Deferral Rationale
+
+
+#### The Multi-Channel Model
+The User schema supports three independent notification channels under `preferences.notificationChannels`:
+- `email`: Transactional email notifications (Default: `true`).
+- `webPush`: Browser push notifications via Service Worker and Web Push API (Default: `false`).
+- `whatsApp`: Instant messaging notifications (Default: `false`).
+
+#### Deferral Rationale (Why Only Email in MVP):
+1. **Email Is Universally Available & Free**: Every user has an email address from account registration. Using Gmail SMTP via Nodemailer with an App Password incurs zero infrastructure cost.
+2. **Web Push Complexity**: Requires client-side Service Worker registration, VAPID key generation, handling browser permission prompts, and storing per-device subscription endpoints in MongoDB.
+3. **WhatsApp Cost & Verification Overhead**: Requires Meta Business Account verification, pre-approved message templates, or paid API providers (e.g., Twilio / MessageBird) which are not suitable for an early-stage MVP.
+4. **Forward Compatibility**: The schema, data structures, and reminder generation loops are pre-built to support `webPush` and `whatsApp` later without needing database migrations.
+
+*(Note for future refactoring: User schema uses camelCase `webPush`/`whatsApp` while Reminder model's `channel` enum uses `'push'`/`'whatsapp'`. These should be normalized when implementing the other channels).*
+
+---
+
+### Decision 8: Pre-Computed Reminder Documents vs. On-The-Fly Cron Calculations
+
+#### The Decision
+When a warranty is created, individual `Reminder` documents are **pre-calculated and persisted** in MongoDB (one document per reminder interval $\times$ enabled channel), rather than dynamically calculating "who needs a reminder today" inside the cron job.
+
+#### Why Pre-Compute in Advance?
+1. **Granular State Tracking**: Each notification has its own lifecycle status (`pending` $\rightarrow$ `sent` / `failed`) and audit timestamp (`sentAt`).
+2. **Immunity to Preference Shifts**: If a user later modifies their default interval settings, existing scheduled reminders for registered items remain deterministic.
+3. **Non-Blocking Execution**: Reminder generation in `createWarranty` is wrapped in a dedicated `try/catch`. If reminder calculation fails, the core warranty response still succeeds — a missing scheduled reminder is a recoverable minor issue, whereas failing the user's warranty creation would be unacceptable.
+4. **Interval Filtering**: Automatically skips reminder dates that have already passed (e.g. adding a product with only 10 days of warranty left will skip the 30-day reminder).
+
+---
+
+### Decision 9: Next Milestone Strategy (Move to Frontend)
+
+#### The Decision
+The backend core value loop is now 100% complete and verified:
+- **Authentication**: Email/Password + 1-click Google OAuth 2.0 with JWT cookies.
+- **Warranty Vault**: Full CRUD scoped to logged-in user.
+- **BYOS Storage**: Google Drive OAuth connection and atomic receipt uploads with rollback.
+- **Reminder Engine**: Automated expiry calculation, batch reminder scheduling, and hourly cron email dispatcher.
+
+#### Why Move to Frontend Before OCR / Claim Checklists?
+- **Working End-to-End User Value Loop**: The application already delivers its primary promise: *Store receipts securely in Google Drive and get notified before warranties expire*.
+- OCR auto-extraction and claim checklists are enhancements to an existing workflow, not architectural blockers. Building the Next.js frontend now allows full end-to-end user testing of the core product.
+

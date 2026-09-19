@@ -65,7 +65,11 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
         "email": "alex@example.com",
         "avatar": "",
         "preferences": {
-          "emailNotifications": true,
+          "notificationChannels": {
+            "email": true,
+            "webPush": false,
+            "whatsApp": false
+          },
           "reminderDaysBefore": [30, 7, 1]
         },
         "createdAt": "2026-09-19T10:00:00.000Z",
@@ -183,13 +187,13 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
 
 ### `POST /api/warranties`
 - **Access**: Private (Requires `verifyJWT`)
-- **Content-Type**: `multipart/form-data` OR `application/json`
-- **Description**: Creates a new product/warranty entry in the vault, with optional invoice/receipt file upload streamed directly to the user's personal Google Drive.
+- **Content-Type**: `multipart/form-data` (when uploading a receipt file) OR `application/json` (manual data entry)
+- **Description**: Creates a new product/warranty entry in the vault (Option A single-request creation), with optional receipt file streamed directly to the user's personal Google Drive.
 - **Form Fields**:
   - `productName` (string, required): Name of the item
   - `purchaseDate` (date string `YYYY-MM-DD`, required): Date of purchase
   - `warrantyMonths` (number, required): Coverage period in months
-  - `category` (string, optional): E.g., 'Electronics', 'Appliances'
+  - `category` (string, optional): E.g., 'Electronics', 'Appliances', 'Furniture', 'Vehicles'
   - `brand` (string, optional): Manufacturer brand
   - `modelNumber` (string, optional): Product model
   - `serialNumber` (string, optional): Serial or IMEI
@@ -197,7 +201,7 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
   - `currency` (string, optional): Default 'USD'
   - `retailer` (string, optional): Store / seller name
   - `notes` (string, optional): Miscellaneous coverage notes
-  - `invoice` (file binary, **OPTIONAL**): Receipt/invoice image (JPEG, PNG, WEBP, HEIC) or PDF (max 10MB)
+  - `invoice` (file binary, **OPTIONAL**): Receipt/invoice image (JPEG, PNG, WEBP, HEIC) or PDF (max 10MB via multer memory storage)
 - **Response** (`201 Created`):
   ```json
   {
@@ -219,13 +223,11 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
     "success": true
   }
   ```
-- **Atomic Drive Upload & Rollback Design**:
-  - If `req.file` is provided:
-    1. Verifies `user.driveConnected === true`. If false, rejects with `400 "Connect Google Drive before uploading a document"`.
-    2. Uploads the file buffer to Google Drive **FIRST**.
-    3. Writes the document to MongoDB. If the DB write fails, it executes an automatic rollback (`deleteFileFromDrive()`) to prevent orphaned files in the user's Drive.
-  - If `req.file` is not provided: Standard manual entry without Google Drive involvement.
-
+- **Execution Flow & Integrity Rules**:
+  1. **Drive Connection Verification**: If `req.file` exists, verifies `req.user.driveConnected === true`. If false, rejects immediately with `400 "Connect Google Drive before uploading a document"`. (Drive connection is NOT required if no file is sent).
+  2. **Drive Upload First**: Uploads file buffer directly to Google Drive via in-memory stream into `"Receipt Collector Vault"` folder.
+  3. **MongoDB Write with Atomic Rollback**: Attempts `Product.create(warrantyPayload)`. If MongoDB write fails, it automatically calls `deleteFileFromDrive({ user: req.user, fileId })` to delete the Drive file and prevent orphaned cloud files.
+  4. **Non-Blocking Reminder Generation**: Invokes `generateRemindersForProduct(warranty, req.user)` in a non-blocking `try/catch` to pre-schedule reminder documents without failing the HTTP response if scheduling encounters an issue.
 
 ---
 
@@ -251,6 +253,7 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
 ### `DELETE /api/warranties/:id`
 - **Access**: Private (Requires `verifyJWT`)
 - **Description**: Deletes a single warranty record owned by the authenticated user (`Product.findOneAndDelete({ _id: id, user: req.user._id })`).
+- **Known Limitation / Planned Fix**: Deletes the MongoDB `Product` document, but currently does not delete the linked Google Drive file if one exists. This will be addressed in a future cleanup pass.
 
 ---
 
@@ -260,7 +263,44 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
 
 ---
 
-## 5. Health Check API (`/api/health`)
+## 5. Background Jobs & Reminder Engine
+
+> **Architecture Note**: Background jobs run asynchronously inside the Express process and do not expose external HTTP endpoints.
+
+---
+
+### Database Representation (`Reminder` Model)
+```json
+{
+  "_id": "66e4c3d4e5f6a7b8c9d01234",
+  "user": "66e4a1b2c3d4e5f6a7b8c9d0",
+  "product": "66e4b2c3d4e5f6a7b8c9d011",
+  "scheduledDate": "2027-12-16T00:00:00.000Z",
+  "daysBeforeExpiry": 30,
+  "channel": "email",
+  "status": "pending",
+  "createdAt": "2026-09-19T10:05:00.000Z"
+}
+```
+
+### 1. Pre-Computation Engine (`generateRemindersForProduct`)
+- Triggered automatically when a new warranty is created.
+- Reads `user.preferences.notificationChannels` and `user.preferences.reminderDaysBefore` (default: `[30, 7, 1]`).
+- Skips dates that have already passed relative to `new Date()`.
+- Pre-computes pending `Reminder` documents and batch-inserts them using `Reminder.insertMany`.
+
+### 2. Scheduled Cron Worker (`src/jobs/reminder.job.js`)
+- Runs every hour (`0 * * * *`) scheduled via `node-cron`.
+- Started automatically inside `connectDB().then(...)` upon successful MongoDB connection.
+- Invokes `processDueReminders()`:
+  1. Queries: `Reminder.find({ status: 'pending', scheduledDate: { $lte: new Date() } }).populate('product').populate('user')`.
+  2. Guards against orphaned records (where user or product was deleted from DB).
+  3. Dispatches transactional email via `email.service.js` (Nodemailer Gmail SMTP).
+  4. Updates reminder status to `'sent'` (with `sentAt = new Date()`) or `'failed'`.
+
+---
+
+## 6. Health Check API (`/api/health`)
 
 ---
 
@@ -280,3 +320,4 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
     "success": true
   }
   ```
+

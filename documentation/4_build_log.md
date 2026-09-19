@@ -76,6 +76,13 @@
   - Updated `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) with strict atomic integrity: upload to Drive first, write to MongoDB, and automatically delete the Drive file if MongoDB write fails.
   - Attached `upload.single('invoice')` to `POST /api/warranties` in [`warranty.routes.js`](file:///c:/receipt-collector/backend/src/routes/warranty.routes.js).
   - Refactored `createWarranty` to eliminate redundant `User.findById` re-queries by directly using `req.user` from `verifyJWT`, and unified the `Product.create` payload construction into a single DRY write block with rollback safety.
+- **Testing & Verification Performed**:
+  - **Multipart Form-Data Verification**: Tested `POST /api/warranties` in Postman using multipart form-data (not raw JSON), passing all Product fields plus the `invoice` receipt binary.
+  - **Deliberate Rollback Test**: Sent a request with an invalid `category` (violating Mongoose enum validation) WITH a valid file attached. Verified that the file was uploaded to Drive, MongoDB rejected the write with a 400 validation error, and the rollback hook (`deleteFileFromDrive`) physically removed the file from Google Drive.
+  - **Drive-Required Guard Test**: Manually set a test user's `driveConnected` to `false` in MongoDB Atlas, sent a request with an attached `invoice` file, and confirmed that the server rejected the request with `400 "Connect Google Drive before uploading a document"` without making any Drive API upload attempts.
+  - **Manual Entry Path Test**: Tested creating a warranty without the `invoice` field; confirmed valid document creation in MongoDB with `driveFileId: null` and `driveFileUrl: null`.
+
+---
 
 ### [2026-09-19] — Expiry Calculation & Automated Reminder Engine Complete (Step 3 Completed)
 - **What Was Built**:
@@ -84,8 +91,13 @@
   - Hooked reminder creation directly into `createWarranty` in [`warranty.controller.js`](file:///c:/receipt-collector/backend/src/controllers/warranty.controller.js) inside a non-blocking `try/catch` block to ensure notification errors never fail the core warranty creation response.
   - Implemented [`email.service.js`](file:///c:/receipt-collector/backend/src/services/email.service.js) using `nodemailer` Gmail transporter to format and dispatch warranty expiry notices to users.
   - Built `processDueReminders()` in [`reminder.service.js`](file:///c:/receipt-collector/backend/src/services/reminder.service.js) to query pending reminders whose `scheduledDate <= new Date()`, populate product and user info, dispatch emails, guard against deleted/orphaned records, and update reminder status (`sent` with `sentAt` timestamp or `failed`).
-  - Created scheduled cron worker [`reminder.job.js`](file:///c:/receipt-collector/backend/src/jobs/reminder.job.js) via `node-cron` running hourly on DB connection start.
-
+  - Created scheduled cron worker [`reminder.job.js`](file:///c:/receipt-collector/backend/src/jobs/reminder.job.js) via `node-cron` running hourly (`0 * * * *`) on DB connection start.
+- **Testing & Verification Performed**:
+  - Followed an isolated, 4-stage incremental test methodology:
+    1. *Stage 1 (Row Generation)*: Created a warranty and verified generated `Reminder` rows directly in MongoDB Atlas with status `'pending'`.
+    2. *Stage 2 (Nodemailer Isolation)*: Tested email delivery with a standalone script using Gmail SMTP and a 16-character Google App Password (`EMAIL_APP_PASSWORD`), verifying successful inbox delivery.
+    3. *Stage 3 (Node-Cron Isolation)*: Verified scheduled job execution in isolation to ensure `node-cron` timer firing worked properly.
+    4. *Stage 4 (End-to-End Processing)*: Manually backdated a `Reminder` document's `scheduledDate` in MongoDB, temporarily set cron schedule to `* * * * *` (every minute) to observe real-time batch processing and email receipt, then restored schedule to production hourly `0 * * * *`.
 
 ---
 
@@ -200,7 +212,31 @@
 
 ---
 
-### Gotcha 9: Reminder Generation ES Module Import, Preferences Path & Required Schema Field Bugs
+### Gotcha 9: ES Module Import Hoisting Breaking Environment Variables
+- **Symptom**: Initiating Google Login threw `invalid_request: Missing required parameter: client_id`.
+- **Root Cause**: In ES Modules, all `import` statements are evaluated and executed before any other top-level code in the file. `dotenv.config()` was called after the `import` statements in `index.js`, so when `googleOAuth.js` was evaluated during import time, `process.env.GOOGLE_CLIENT_ID` was still `undefined`.
+- **Fix**: Replaced runtime `dotenv.config()` call with `import 'dotenv/config'` as the very first import statement at the top of `index.js`.
+- **Lesson**: Always use `import 'dotenv/config'` at the top of the entry point in ESM Node projects to ensure environment variables populate before module dependency graphs load.
+
+---
+
+### Gotcha 10: "Access Blocked: Authorization Error" on Google Consent Screen
+- **Symptom**: Google OAuth returned `Error 403: access_denied` with "Access blocked: Receipt Collector has not completed the Google verification process".
+- **Root Cause**: The Google Cloud Console OAuth consent screen was in **"Testing"** publishing status, which strictly blocks all Google accounts from authenticating unless they are explicitly added to the project's **Test Users** list.
+- **Fix**: Added the testing Google account email address under *Google Cloud Console $\rightarrow$ APIs & Services $\rightarrow$ OAuth consent screen $\rightarrow$ Test users*.
+- **Lesson**: While in development with an unverified app, test accounts must be registered in the Google Cloud Console. For public launch, the app must transition to "In Production".
+
+---
+
+### Gotcha 11: Redundant DB Queries & Code Duplication in Warranty Creation
+- **Symptom**: `createWarranty` had two duplicated `Product.create()` branches and performed an extra `User.findById(req.user._id)` database lookup.
+- **Root Cause**: The `verifyJWT` middleware already performs `User.findById(decoded._id).select("-password")` and attaches the user document to `req.user`. Querying `User.findById` again in the controller added unnecessary database latency.
+- **Fix**: Replaced the redundant query with direct usage of `req.user`, and consolidated payload construction into a single shared object where Drive metadata is attached conditionally.
+- **Lesson**: Audit middleware contracts to avoid redundant lookups in controllers.
+
+---
+
+### Gotcha 12: Reminder Generation ES Module Import, Preferences Path & Required Schema Field Bugs
 - **Symptom**: Reminder documents failed to create when a warranty was registered, or threw `TypeError: Cannot read properties of undefined (reading 'insertMany')` or Mongoose `ValidationError`.
 - **Root Cause**:
   1. `reminder.service.js` used named import `import { Reminder } from '../models/reminder.model.js'`, but `reminder.model.js` exported `Reminder` as default (`export default Reminder`).
@@ -216,7 +252,7 @@
 
 ---
 
-### Gotcha 10: Background Job Relative Import Paths & Orphaned Document Handling
+### Gotcha 13: Background Job Relative Import Paths & Orphaned Document Handling
 - **Symptom**: Application failed to start or crashed on boot with `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../backend/services/reminder.service.js' imported from .../backend/jobs/reminder.job.js`.
 - **Root Cause**:
   1. Placing `jobs` at `backend/jobs/` caused `../services/reminder.service.js` to look for a non-existent `backend/services/` folder instead of `backend/src/services/`.
@@ -226,5 +262,14 @@
   - Deferred cron execution in `index.js` until after `connectDB()` resolves successfully.
   - Added a defensive null-guard in `processDueReminders()` (`if (!reminder.user || !reminder.product)`) to safely log warnings, mark orphaned reminders as failed, and continue processing remaining items.
 - **Lesson**: Keep all backend components unified inside `src/` to maintain consistent relative import trees, and always add null-checks on populated Mongoose references.
+
+---
+
+### Gotcha 14: Known Gap — Drive Files Not Deleted on Warranty Deletion
+- **Symptom**: Calling `DELETE /api/warranties/:id` deletes the product document from MongoDB, but the physical receipt file remains in the user's Google Drive.
+- **Root Cause**: `deleteWarrantyById` only executes `Product.findOneAndDelete({ _id: id, user: req.user._id })` without invoking `deleteFileFromDrive()`.
+- **Planned Fix**: In an upcoming refactoring pass, `deleteWarrantyById` will check `if (warranty.driveFileId)` and call `deleteFileFromDrive({ user: req.user, fileId: warranty.driveFileId })` before or immediately after deleting the document.
+- **Lesson**: Track external storage references across all lifecycle operations (Create, Update, Delete) to prevent orphaned files in user storage over time.
+
 
 
