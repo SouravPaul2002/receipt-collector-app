@@ -2,6 +2,7 @@ import { oauth2Client } from "../config/googleOAuth.js"
 import User from "../models/user.model.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import ApiError from "../utils/ApiError.js"
+import { encrypt } from "../utils/crypto.js"
 
 const cookieOptions = {
     httpOnly: true,
@@ -81,3 +82,59 @@ export const googleLoginCallback = asyncHandler(async (req, res) => {
         .cookie("refreshToken", refreshToken, cookieOptions)
         .redirect(`${process.env.FRONTEND_URL}/dashboard`)
 })
+
+/**
+ * @desc    Redirect to Google OAuth Consent Screen for Drive Storage Scope
+ * @route   GET /api/auth/google/drive/connect
+ * @access  Private (Requires verifyJWT)
+ */
+export const googleDriveConnectRedirect = (req, res) => {
+    const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline', // forces Google to issue a refresh token
+        prompt: 'consent',     // ensures refresh token is returned on repeat connections
+        scope: ['https://www.googleapis.com/auth/drive.file'],
+        redirect_uri: process.env.GOOGLE_DRIVE_REDIRECT_URI,
+        state: req.user._id.toString()
+    })
+    return res.redirect(url)
+}
+
+/**
+ * @desc    Google Drive OAuth Callback Handler (Stores encrypted Drive Refresh Token)
+ * @route   GET /api/auth/google/drive/callback
+ * @access  Private (Requires verifyJWT)
+ */
+export const googleDriveConnectCallback = asyncHandler(async (req, res) => {
+    const { code, error } = req.query
+
+    // Handle user cancellation or access denied
+    if (error) {
+        return res.redirect(`${process.env.FRONTEND_URL}/dashboard?driveError=${encodeURIComponent(error)}`)
+    }
+
+    if (!code) {
+        throw new ApiError(400, "Missing authorization code for Drive connection")
+    }
+
+    const { tokens } = await oauth2Client.getToken({
+        code,
+        redirect_uri: process.env.GOOGLE_DRIVE_REDIRECT_URI
+    })
+
+    if (!tokens.refresh_token) {
+        throw new ApiError(400, "Failed to obtain Google Drive refresh token. Please re-consent.")
+    }
+
+    const user = await User.findById(req.user._id)
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+
+    // Encrypt the Drive refresh token using AES-256-GCM before saving to DB
+    user.googleDriveRefreshToken = encrypt(tokens.refresh_token)
+    user.driveConnected = true
+    await user.save({ validateBeforeSave: false })
+
+    return res.redirect(`${process.env.FRONTEND_URL}/dashboard?driveConnected=true`)
+})
+

@@ -26,9 +26,9 @@ This document tracks all completed features, architectural implementations, and 
   - [x] Refresh Access Token endpoint (`POST /api/auth/refresh-token`)
   - [x] JWT Protection Middleware (`verifyJWT`)
 
-- **Step 2: Google Drive Upload Integration** $\rightarrow$ **Pending (0%)**
-  - [ ] OAuth `drive.file` consent scope integration
-  - [ ] Backend file upload endpoint & Google Drive API client
+- **Step 2: Google Drive Upload Integration** $\rightarrow$ **In Progress (33%)**
+  - [x] OAuth `drive.file` consent scope integration & AES-256-GCM token storage (`GET /api/auth/google/drive/connect`, `GET /api/auth/google/drive/callback`)
+  - [ ] Backend file upload endpoint & Google Drive API client (create folder & upload)
   - [ ] Store Drive `fileId` and web URL in `Product` document
 
 - **Step 3: Expiry Calculation & Reminder Engine** $\rightarrow$ **Pending (0%)**

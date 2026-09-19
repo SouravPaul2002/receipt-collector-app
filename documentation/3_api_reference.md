@@ -150,9 +150,28 @@ All errors intercepted by [`errorHandler.js`](file:///c:/receipt-collector/backe
 
 ---
 
-### `GET /api/auth/google/drive/connect` *(Planned — Step 2)*
+### `GET /api/auth/google/drive/connect`
 - **Access**: Private (Requires `verifyJWT`)
-- **Description**: Initiates the separate Google Drive authorization flow with `scope: ['https://www.googleapis.com/auth/drive.file']` and `access_type: 'offline'`.
+- **Description**: Initiates the separate Google Drive storage authorization flow by redirecting the authenticated user to Google's consent screen.
+- **Query Parameters**: None
+- **Working Mechanism**: Generates an authorization URL with:
+  - `scope: ['https://www.googleapis.com/auth/drive.file']` (only files the app creates)
+  - `access_type: 'offline'` (requests refresh token)
+  - `prompt: 'consent'` (forces Google to return a refresh token even on repeat authorizations)
+  - `redirect_uri: process.env.GOOGLE_DRIVE_REDIRECT_URI`
+  - `state: req.user._id` (binds the OAuth state to the authenticated user ID)
+
+---
+
+### `GET /api/auth/google/drive/callback`
+- **Access**: Private (Requires `verifyJWT`)
+- **Description**: Handles the redirect from Google after the user grants Drive permissions, exchanges the code for tokens, encrypts the `refresh_token` using AES-256-GCM, stores it on the user document in MongoDB, sets `driveConnected: true`, and redirects to frontend `${FRONTEND_URL}/dashboard?driveConnected=true`.
+- **Query Parameters**:
+  - `code` (string): Authorization code from Google.
+  - `error` (string, optional): Access denial or cancellation flag from Google (redirects to `${FRONTEND_URL}/dashboard?driveError=...`).
+- **Security Design Note**:
+  - Protected by `verifyJWT` because Drive connection can only be linked to an already-logged-in user account.
+  - The Drive `refresh_token` is never saved in plaintext; it is encrypted with [`crypto.js`](file:///c:/receipt-collector/backend/src/utils/crypto.js) before calling `user.save()`.
 
 ---
 

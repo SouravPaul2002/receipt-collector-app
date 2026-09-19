@@ -1,12 +1,21 @@
 import { Router } from 'express'
-import { googleLoginCallback, googleLoginRedirect } from '../controllers/googleAuth.controller.js'
+import {
+    googleLoginRedirect,
+    googleLoginCallback,
+    googleDriveConnectRedirect,
+    googleDriveConnectCallback
+} from '../controllers/googleAuth.controller.js'
+import { verifyJWT } from '../middlewares/auth.middleware.js'
 
 const router = Router()
 
-// GET /api/auth/google -> Redirect to Google Consent Screen
+// Public Google Login Flow
 router.get('/google', googleLoginRedirect)
-
-// GET /api/auth/google/callback -> Handle Google OAuth Redirect & Token Exchange
 router.get('/google/callback', googleLoginCallback)
 
-export default router
+// Protected Google Drive Connection Flow (Requires Authenticated User)
+router.get('/google/drive/connect', verifyJWT, googleDriveConnectRedirect)
+router.get('/google/drive/callback', verifyJWT, googleDriveConnectCallback)
+
+export default router
+
