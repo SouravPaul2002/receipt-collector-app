@@ -80,4 +80,4 @@ export const googleLoginCallback = asyncHandler(async (req, res) => {
         .cookie("accessToken", accessToken, cookieOptions)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .redirect(`${process.env.FRONTEND_URL}/dashboard`)
-})
+})

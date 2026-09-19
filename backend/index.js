@@ -1,5 +1,5 @@
+import 'dotenv/config'
 import express from 'express'
-import dotenv from 'dotenv'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import connectDB from './src/config/db.js'
@@ -7,7 +7,6 @@ import apiRoutes from './src/routes/index.js'
 import errorHandler from './src/middlewares/errorHandler.js'
 import ApiError from './src/utils/ApiError.js'
 
-dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 5000
