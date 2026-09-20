@@ -1,12 +1,46 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ShieldCheck, Bell, HardDrive, ArrowRight, Sparkles } from "lucide-react"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ShieldCheck, Bell, HardDrive, ArrowRight, Sparkles, Moon, Sun } from "lucide-react"
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(true)
+
+    // Theme initialization & sync with localStorage
+    useEffect(() => {
+        const storedTheme = localStorage.getItem("theme")
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+        const isDark = storedTheme === "dark" || (!storedTheme && prefersDark)
+
+        if (isDark) {
+            document.documentElement.classList.add("dark")
+            setIsDarkMode(true)
+        } else {
+            document.documentElement.classList.remove("dark")
+            setIsDarkMode(false)
+        }
+    }, [])
+
+    const toggleTheme = () => {
+        if (isDarkMode) {
+            document.documentElement.classList.remove("dark")
+            localStorage.setItem("theme", "light")
+            setIsDarkMode(false)
+        } else {
+            document.documentElement.classList.add("dark")
+            localStorage.setItem("theme", "dark")
+            setIsDarkMode(true)
+        }
+    }
 
     const handleGoogleLogin = () => {
         setIsLoading(true)
@@ -16,6 +50,28 @@ export default function LoginPage() {
 
     return (
         <div className="relative min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-zinc-100 to-emerald-50/40 dark:from-zinc-950 dark:via-zinc-900 dark:to-emerald-950/30 overflow-hidden">
+            {/* Dark Mode Toggle Button */}
+            <div className="absolute top-5 right-5 z-20">
+                <Tooltip>
+                    <TooltipTrigger
+                        type="button"
+                        onClick={toggleTheme}
+                        aria-label="Toggle theme"
+                        className="size-10 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 shadow-sm backdrop-blur-md transition-all flex items-center justify-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        {isDarkMode ? (
+                            <Sun className="size-4 text-amber-400" />
+                        ) : (
+                            <Moon className="size-4 text-zinc-600" />
+                        )}
+                        <span className="sr-only">Toggle theme</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs font-medium">
+                        {isDarkMode ? "Light Mode" : "Dark Mode"}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+
             {/* Ambient background glow elements */}
             <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-400/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -47,7 +103,7 @@ export default function LoginPage() {
                             onClick={handleGoogleLogin}
                             disabled={isLoading}
                             variant="outline"
-                            className="w-full h-12 text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-750 text-zinc-800 dark:text-zinc-100 shadow-sm transition-all duration-200 rounded-xl group"
+                            className="w-full h-12 text-sm font-semibold border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-100 shadow-sm transition-all duration-200 rounded-xl group"
                         >
                             {isLoading ? (
                                 <div className="size-5 border-2 border-zinc-400 border-t-zinc-800 dark:border-t-white rounded-full animate-spin mr-2" />
@@ -95,6 +151,19 @@ export default function LoginPage() {
                                 </div>
                                 <span>Zero manual sorting — organized vault folder</span>
                             </div>
+                        </div>
+
+                        {/* Signup Link */}
+                        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-center">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Don&apos;t have an account?{" "}
+                                <Link
+                                    href="/signup"
+                                    className="font-semibold text-zinc-900 dark:text-zinc-100 underline underline-offset-2 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                                >
+                                    Sign Up
+                                </Link>
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

@@ -12,6 +12,7 @@ import { CustomNavbar } from "@/components/common/CustomNavbar"
 import { CustomCard, getExpiryStatus } from "@/components/common/CustomCard"
 import { CustomTable } from "@/components/common/CustomTable"
 import { ViewToggle, type ViewMode } from "@/components/common/ViewToggle"
+import { WarrantyFormDrawer } from "@/components/common/WarrantyFormDrawer"
 import {
     Tooltip,
     TooltipContent,
@@ -44,6 +45,11 @@ export default function DashboardPage() {
     const [isDarkMode, setIsDarkMode] = useState<boolean>(true)
     const [showProfileModal, setShowProfileModal] = useState<boolean>(false)
 
+    // Drawer state for Add and Edit Item
+    const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
+    const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null)
+    const [isSaving, setIsSaving] = useState<boolean>(false)
+
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
     // Theme initialization & sync
@@ -70,6 +76,15 @@ export default function DashboardPage() {
             document.documentElement.classList.add("dark")
             localStorage.setItem("theme", "dark")
             setIsDarkMode(true)
+        }
+    }
+
+    const fetchWarranties = async () => {
+        try {
+            const res = await apiFetch<Warranty[]>("/warranties")
+            setWarranties(res.data || [])
+        } catch (err) {
+            console.error("Failed to fetch warranties", err)
         }
     }
 
@@ -101,6 +116,85 @@ export default function DashboardPage() {
 
     const handleConnectDrive = () => {
         window.location.href = `${apiUrl}/auth/google/drive/connect`
+    }
+
+    const handleOpenAdd = () => {
+        setSelectedWarranty(null)
+        setIsDrawerOpen(true)
+    }
+
+    const handleOpenEdit = (warranty: Warranty) => {
+        setSelectedWarranty(warranty)
+        setIsDrawerOpen(true)
+    }
+
+    const handleDeleteWarranty = async (warranty: Warranty) => {
+        if (!confirm(`Are you sure you want to delete "${warranty.productName}"?`)) return
+        try {
+            await apiFetch(`/warranties/${warranty._id}`, { method: "DELETE" })
+            setWarranties((prev) => prev.filter((w) => w._id !== warranty._id))
+        } catch (err: any) {
+            alert(err.message || "Failed to delete warranty")
+        }
+    }
+
+    const handleSaveWarranty = async ({
+        formValues,
+        file,
+    }: {
+        formValues: Record<string, any>
+        file: File | null
+    }) => {
+        setIsSaving(true)
+        try {
+            if (selectedWarranty) {
+                // Edit existing warranty (PUT)
+                const res = await apiFetch<Warranty>(`/warranties/${selectedWarranty._id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        ...formValues,
+                        price: formValues.price ? Number(formValues.price) : undefined,
+                        warrantyMonths: Number(formValues.warrantyMonths),
+                    }),
+                })
+                if (res.data) {
+                    setWarranties((prev) =>
+                        prev.map((w) => (w._id === selectedWarranty._id ? res.data : w))
+                    )
+                }
+            } else {
+                // Add new warranty (POST multipart)
+                const formData = new FormData()
+                Object.entries(formValues).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null && val !== "") {
+                        formData.append(key, String(val))
+                    }
+                })
+                if (file) {
+                    formData.append("invoice", file)
+                }
+
+                const response = await fetch(`${apiUrl}/warranties`, {
+                    method: "POST",
+                    body: formData,
+                    credentials: "include",
+                })
+
+                const result = await response.json()
+                if (!response.ok) {
+                    throw new Error(result.message || "Failed to create warranty")
+                }
+
+                await fetchWarranties()
+            }
+
+            setIsDrawerOpen(false)
+            setSelectedWarranty(null)
+        } catch (err: any) {
+            alert(err.message || "Failed to save warranty")
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     // Stats calculations
@@ -258,9 +352,7 @@ export default function DashboardPage() {
                         {/* Add Item Button */}
                         <button
                             type="button"
-                            onClick={() => {
-                                console.log("Add Item clicked")
-                            }}
+                            onClick={handleOpenAdd}
                             aria-label="Add Item"
                             className="h-10 px-3.5 rounded-xl bg-zinc-200/70 dark:bg-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-700/80 border border-zinc-200/80 dark:border-zinc-800/80 text-foreground transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
@@ -325,12 +417,8 @@ export default function DashboardPage() {
                                 onClick={(item) => {
                                     console.log("Viewing warranty details for:", item._id)
                                 }}
-                                onEdit={(item) => {
-                                    console.log("Edit warranty:", item._id)
-                                }}
-                                onDelete={(item) => {
-                                    console.log("Delete warranty:", item._id)
-                                }}
+                                onEdit={(item) => handleOpenEdit(item)}
+                                onDelete={(item) => handleDeleteWarranty(item)}
                             />
                         ))}
                     </div>
@@ -340,15 +428,26 @@ export default function DashboardPage() {
                         onRowClick={(item) => {
                             console.log("Viewing warranty details for:", item._id)
                         }}
-                        onEdit={(item) => {
-                            console.log("Edit warranty:", item._id)
-                        }}
-                        onDelete={(item) => {
-                            console.log("Delete warranty:", item._id)
-                        }}
+                        onEdit={(item) => handleOpenEdit(item)}
+                        onDelete={(item) => handleDeleteWarranty(item)}
                     />
                 )}
             </main>
+
+            {/* Add & Edit Item Drawer (Right Slide-in Wizard) */}
+            <WarrantyFormDrawer
+                isOpen={isDrawerOpen}
+                onOpenChange={setIsDrawerOpen}
+                title={selectedWarranty ? "Edit Item" : "Add Item"}
+                description={
+                    selectedWarranty
+                        ? "Update product details, warranty timeline, or store receipts."
+                        : undefined
+                }
+                initialData={selectedWarranty}
+                onSubmit={handleSaveWarranty}
+                isLoading={isSaving}
+            />
 
             {/* Profile & Account Details Modal */}
             {showProfileModal && (
