@@ -40,8 +40,18 @@ This document tracks all completed features, architectural implementations, and 
 
 
 
+- **Frontend Web Application (Next.js App Router)** $\rightarrow$ **In Progress (60%)**
+  - [x] Clean Next.js 16 + React 19 + TypeScript + TailwindCSS v4 setup
+  - [x] Typography system using **Plus Jakarta Sans** (weights 400-800)
+  - [x] Type-safe API client utility (`lib/api.ts`) with cross-origin cookie management
+  - [x] Polished 1-click Google OAuth login page (`/login`)
+  - [x] Full-featured Warranty Vault dashboard (`/dashboard`) with metrics cards, real-time search, category tabs, and Google Drive links
+  - [ ] Add Warranty modal / form (with file upload to Drive)
+  - [ ] Edit & Delete warranty actions with confirmation dialogs
+
 - **Step 4: OCR Auto-Extraction** $\rightarrow$ **Pending (0%)**
 - **Step 5: Claim Assistance & Checklists** $\rightarrow$ **Pending (0%)**
+
 
 ---
 
