@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 }
 
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
 
 export default function RootLayout({
   children,
@@ -33,7 +34,10 @@ export default function RootLayout({
       className={`${jakarta.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans bg-background text-foreground selection:bg-primary/20 selection:text-foreground flex flex-col">
-        <TooltipProvider delay={150}>{children}</TooltipProvider>
+        <TooltipProvider delay={150}>
+          {children}
+          <Toaster position="top-right" closeButton />
+        </TooltipProvider>
       </body>
     </html>
   )

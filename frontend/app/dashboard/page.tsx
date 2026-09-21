@@ -14,6 +14,17 @@ import { CustomTable } from "@/components/common/CustomTable"
 import { ViewToggle, type ViewMode } from "@/components/common/ViewToggle"
 import { WarrantyFormDrawer } from "@/components/common/WarrantyFormDrawer"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
@@ -49,6 +60,10 @@ export default function DashboardPage() {
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
     const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null)
     const [isSaving, setIsSaving] = useState<boolean>(false)
+
+    // Alert Dialog state for Deletion
+    const [deleteTargetWarranty, setDeleteTargetWarranty] = useState<Warranty | null>(null)
+    const [isDeleting, setIsDeleting] = useState<boolean>(false)
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -128,13 +143,23 @@ export default function DashboardPage() {
         setIsDrawerOpen(true)
     }
 
-    const handleDeleteWarranty = async (warranty: Warranty) => {
-        if (!confirm(`Are you sure you want to delete "${warranty.productName}"?`)) return
+    const handleDeleteWarranty = (warranty: Warranty) => {
+        setDeleteTargetWarranty(warranty)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!deleteTargetWarranty) return
+        setIsDeleting(true)
+        const targetName = deleteTargetWarranty.productName
         try {
-            await apiFetch(`/warranties/${warranty._id}`, { method: "DELETE" })
-            setWarranties((prev) => prev.filter((w) => w._id !== warranty._id))
+            await apiFetch(`/warranties/${deleteTargetWarranty._id}`, { method: "DELETE" })
+            setWarranties((prev) => prev.filter((w) => w._id !== deleteTargetWarranty._id))
+            toast.success(`"${targetName}" deleted successfully`)
+            setDeleteTargetWarranty(null)
         } catch (err: any) {
-            alert(err.message || "Failed to delete warranty")
+            toast.error(err.message || "Failed to delete item")
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -162,6 +187,7 @@ export default function DashboardPage() {
                         prev.map((w) => (w._id === selectedWarranty._id ? res.data : w))
                     )
                 }
+                toast.success(`"${formValues.productName}" updated successfully`)
             } else {
                 // Add new warranty (POST multipart)
                 const formData = new FormData()
@@ -186,12 +212,13 @@ export default function DashboardPage() {
                 }
 
                 await fetchWarranties()
+                toast.success(`"${formValues.productName}" added successfully`)
             }
 
             setIsDrawerOpen(false)
             setSelectedWarranty(null)
         } catch (err: any) {
-            alert(err.message || "Failed to save warranty")
+            toast.error(err.message || "Failed to save item")
         } finally {
             setIsSaving(false)
         }
@@ -448,6 +475,46 @@ export default function DashboardPage() {
                 onSubmit={handleSaveWarranty}
                 isLoading={isSaving}
             />
+
+            {/* Delete Confirmation Alert Dialog */}
+            <AlertDialog
+                open={Boolean(deleteTargetWarranty)}
+                onOpenChange={(open) => {
+                    if (!open && !isDeleting) {
+                        setDeleteTargetWarranty(null)
+                    }
+                }}
+            >
+                <AlertDialogContent className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-base font-bold text-foreground">
+                            Are you absolutely sure?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                            This action cannot be undone. This will permanently delete{" "}
+                            <span className="font-semibold text-foreground">
+                                &ldquo;{deleteTargetWarranty?.productName}&rdquo;
+                            </span>{" "}
+                            from your warranty vault and remove all upcoming reminder schedules.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-2 pt-2">
+                        <AlertDialogCancel
+                            disabled={isDeleting}
+                            className="h-9 px-4 text-xs font-semibold rounded-xl"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            disabled={isDeleting}
+                            className="h-9 px-4 text-xs font-semibold rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
+                        >
+                            {isDeleting ? "Deleting..." : "Delete Item"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Profile & Account Details Modal */}
             {showProfileModal && (
