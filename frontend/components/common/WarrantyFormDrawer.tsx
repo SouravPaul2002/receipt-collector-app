@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-    Sparkles,
+    HardDrive,
     UploadCloud,
     FileText,
     CheckCircle2,
@@ -32,6 +32,7 @@ import {
     ArrowRight,
     ArrowLeft,
     Calendar,
+    Clock,
     Tag,
     Store,
     DollarSign,
@@ -263,8 +264,8 @@ export function WarrantyFormDrawer({
                         <DrawerDescription className="text-xs text-muted-foreground">
                             {description ||
                                 (step === 1
-                                    ? "Snap a photo of your receipt and we'll fill in the details — or add them yourself."
-                                    : "Fill in product specifications and store information")}
+                                    ? "Attach a receipt or invoice to back up to your Google Drive Vault, or proceed directly to details."
+                                    : "Enter product specifications, warranty duration, and reminder alerts.")}
                         </DrawerDescription>
                     </div>
 
@@ -276,19 +277,19 @@ export function WarrantyFormDrawer({
 
                 {/* Drawer Scrollable Content Area */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-                    {/* ================= STEP 1: Upload & OCR Info ================= */}
+                    {/* ================= STEP 1: Upload Receipt ================= */}
                     {step === 1 && (
                         <div className="space-y-6 animate-in fade-in-50 duration-200">
-                            {/* AI OCR Information Banner */}
+                            {/* Receipt Vault Information Banner */}
                             <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-border space-y-2.5">
                                 <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
                                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                                        <Sparkles className="size-4" />
+                                        <HardDrive className="size-4" />
                                     </div>
-                                    <span>Receipt Scanner & Auto-Fill</span>
+                                    <span>Google Drive Receipt Vault</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    Upload your receipt, invoice, or warranty card (PDF, PNG, JPG). Our OCR engine will securely store it in your Google Drive Vault and extract the product name, retailer, purchase date, and price automatically.
+                                    Upload your receipt, invoice, or warranty card (PDF, PNG, JPG). Your file will be saved directly into your personal Google Drive Vault so you always have proof of purchase accessible.
                                 </p>
                             </div>
 
@@ -448,7 +449,7 @@ export function WarrantyFormDrawer({
                                         <div className="space-y-1">
                                             <Progress value={fileProgress} className="h-1.5 rounded-full" />
                                             <p className="text-[10px] text-muted-foreground text-right">
-                                                Processing {fileProgress}%
+                                                Loading file {fileProgress}%
                                             </p>
                                         </div>
                                     )}
@@ -754,7 +755,7 @@ export function WarrantyFormDrawer({
                                 <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2.5">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <Sparkles className="size-3.5 text-amber-500" />
+                                            <Clock className="size-3.5 text-amber-500" />
                                             Reminder Schedule (Days Before Expiry)
                                         </span>
                                         <span className="text-[11px] text-muted-foreground">

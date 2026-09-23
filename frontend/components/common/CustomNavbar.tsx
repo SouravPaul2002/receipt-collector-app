@@ -17,7 +17,6 @@ import {
     User as UserIcon,
     Moon,
     LogOut,
-    Sparkles,
     BookText,
     Settings,
 } from "lucide-react"
@@ -95,17 +94,6 @@ export function CustomNavbar({
                             Documentation
                         </TooltipContent>
                     </Tooltip>
-                    {/* AI Assistant Tooltip Button */}
-                    <Tooltip>
-                        <TooltipTrigger className="size-9 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <Sparkles className="size-5" />
-                            <span className="sr-only">AI</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs font-medium">
-                            AI
-                        </TooltipContent>
-                    </Tooltip>
-
                     {/* Interactive Notification Bell Dropdown */}
                     <NotificationDropdown />
 

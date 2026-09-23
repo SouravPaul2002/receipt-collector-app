@@ -31,7 +31,7 @@ import {
     Mail,
     HardDrive,
     Bell,
-    Sparkles,
+    Clock,
     Pencil,
     X,
     Check,
@@ -344,7 +344,7 @@ export function ProfileModal({
                                     <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                                <Sparkles className="size-3.5 text-amber-500" />
+                                                <Clock className="size-3.5 text-amber-500" />
                                                 Default Reminder Intervals
                                             </span>
                                             <span className="text-[11px] text-muted-foreground">
@@ -425,7 +425,7 @@ export function ProfileModal({
                                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                                         {user?.driveConnected
                                             ? "Receipts and warranty documents are securely stored in your dedicated Google Drive Vault folder."
-                                            : "Connect your Google Drive account to enable direct receipt document storage and OCR processing."}
+                                            : "Connect your Google Drive account to enable direct receipt and invoice document cloud storage."}
                                     </p>
 
                                     {user?.driveConnected ? (

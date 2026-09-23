@@ -45,4 +45,11 @@
 .idea/
 
 # vercel
-.vercel
+.vercel
+
+# documentation and markdown files
+*.md
+**/*.md
+documentation/
+**/documentation/
+
