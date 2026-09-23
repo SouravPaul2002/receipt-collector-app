@@ -21,10 +21,12 @@ app.use(express.json({ limit: '16kb' }))
 app.use(express.urlencoded({ extended: true, limit: '16kb' }))
 app.use(cookieParser())
 
-// Root Route
-app.get("/", (req, res) => {
-    res.send("Receipt Collector API Server Running")
-})
+// Root & Keep-Alive Ping Routes (for Render / UptimeRobot)
+app.get("/", (req, res) => res.status(200).send("Receipt Collector API Server Running"))
+app.get("/ping", (req, res) => res.status(200).send("pong"))
+app.head("/ping", (req, res) => res.status(200).end())
+app.get("/health", (req, res) => res.status(200).send("OK"))
+app.head("/health", (req, res) => res.status(200).end())
 
 // API Router Mount (/api)
 app.use("/api", apiRoutes)
