@@ -13,6 +13,7 @@ import { CustomCard, getExpiryStatus } from "@/components/common/CustomCard"
 import { CustomTable } from "@/components/common/CustomTable"
 import { ViewToggle, type ViewMode } from "@/components/common/ViewToggle"
 import { WarrantyFormDrawer } from "@/components/common/WarrantyFormDrawer"
+import { ProfileModal } from "@/components/common/ProfileModal"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -521,98 +522,13 @@ export default function DashboardPage() {
             </AlertDialog>
 
             {/* Profile & Account Details Modal */}
-            {showProfileModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                            <div className="flex items-center gap-2.5">
-                                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-                                    <UserIcon className="size-4" />
-                                </div>
-                                <CardTitle className="text-base font-bold">Account Profile</CardTitle>
-                            </div>
-                            <Button
-                                onClick={() => setShowProfileModal(false)}
-                                variant="ghost"
-                                size="sm"
-                                className="size-8 p-0 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-                            >
-                                <X className="size-4" />
-                            </Button>
-                        </CardHeader>
-
-                        <CardContent className="p-6 space-y-5">
-                            {/* Avatar & Basic Info */}
-                            <div className="flex items-center gap-4">
-                                <Avatar className="size-14 ring-2 ring-border">
-                                    <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
-                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
-                                        {user?.name ? user.name[0].toUpperCase() : "U"}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50">{user?.name}</h3>
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
-                                        <Mail className="size-3" /> {user?.email}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Storage Integration Status */}
-                            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                                        <HardDrive className="size-4 text-zinc-600 dark:text-zinc-400" />
-                                        Google Drive Storage
-                                    </span>
-                                    {user?.driveConnected ? (
-                                        <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-[10px]">
-                                            Connected
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px]">
-                                            Not Connected
-                                        </Badge>
-                                    )}
-                                </div>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                                    {user?.driveConnected
-                                        ? "Receipts and warranty invoices are securely uploaded directly to your dedicated Google Drive Vault."
-                                        : "Connect your Google Drive to enable direct receipt file backup."}
-                                </p>
-                                {!user?.driveConnected && (
-                                    <Button
-                                        onClick={handleConnectDrive}
-                                        size="sm"
-                                        className="w-full mt-2 text-xs font-semibold rounded-xl"
-                                    >
-                                        Connect Google Drive
-                                    </Button>
-                                )}
-                            </div>
-
-                            {/* Notification Preferences */}
-                            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
-                                <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                                    <Bell className="size-4 text-amber-500" />
-                                    Active Reminder Intervals
-                                </span>
-                                <div className="flex items-center gap-2 pt-1">
-                                    {(user?.preferences?.reminderDaysBefore || [30, 7, 1]).map((days) => (
-                                        <span
-                                            key={days}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold border border-zinc-200 dark:border-zinc-700"
-                                        >
-                                            <Check className="size-3 text-emerald-500" />
-                                            {days}d before
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            <ProfileModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
+                user={user}
+                onUserUpdate={(updatedUser) => setUser(updatedUser)}
+                handleConnectDrive={handleConnectDrive}
+            />
         </div>
     )
 }
