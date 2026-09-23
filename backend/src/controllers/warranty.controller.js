@@ -23,12 +23,46 @@ export const createWarranty = asyncHandler(async (req, res) => {
         currency,
         retailer,
         warrantyMonths,
-        notes
+        notes,
+        reminderDaysBefore,
+        notificationChannels,
+        notifications
     } = req.body
 
     // Validation for mandatory fields
     if (!productName || !purchaseDate || warrantyMonths === undefined) {
         throw new ApiError(400, "productName, purchaseDate, and warrantyMonths are required")
+    }
+
+    // Parse reminderDaysBefore
+    let parsedReminderDays = [30, 7, 1]
+    const rawReminderDays = reminderDaysBefore || req.body.reminderDays
+    if (rawReminderDays !== undefined) {
+        if (Array.isArray(rawReminderDays)) {
+            parsedReminderDays = rawReminderDays.map(Number)
+        } else if (typeof rawReminderDays === 'string') {
+            try {
+                const parsed = JSON.parse(rawReminderDays)
+                parsedReminderDays = Array.isArray(parsed) ? parsed.map(Number) : rawReminderDays.split(',').map(Number)
+            } catch {
+                parsedReminderDays = rawReminderDays.split(',').map(Number)
+            }
+        }
+    }
+
+    // Parse notification channels
+    let parsedNotificationChannels = { email: true, whatsapp: false, webPush: false }
+    const rawNotifications = notificationChannels || notifications
+    if (rawNotifications !== undefined) {
+        if (typeof rawNotifications === 'string') {
+            try {
+                parsedNotificationChannels = JSON.parse(rawNotifications)
+            } catch {
+                parsedNotificationChannels = { email: true, whatsapp: false, webPush: false }
+            }
+        } else if (typeof rawNotifications === 'object' && rawNotifications !== null) {
+            parsedNotificationChannels = rawNotifications
+        }
     }
 
     // Build base warranty data payload once
@@ -44,7 +78,9 @@ export const createWarranty = asyncHandler(async (req, res) => {
         currency,
         retailer,
         warrantyMonths: Number(warrantyMonths),
-        notes
+        notes,
+        reminderDaysBefore: parsedReminderDays,
+        notificationChannels: parsedNotificationChannels
     }
 
     let uploadedFile = null
@@ -183,6 +219,18 @@ export const updateWarrantyById = asyncHandler(async (req, res) => {
 
     // Prevent overriding user ownership
     delete req.body.user
+
+    if (req.body.notifications && !req.body.notificationChannels) {
+        req.body.notificationChannels = req.body.notifications
+    }
+
+    if (req.body.reminderDaysBefore && typeof req.body.reminderDaysBefore === 'string') {
+        try {
+            req.body.reminderDaysBefore = JSON.parse(req.body.reminderDaysBefore)
+        } catch {
+            req.body.reminderDaysBefore = req.body.reminderDaysBefore.split(',').map(Number)
+        }
+    }
 
     const updatedWarranty = await Product.findOneAndUpdate(
         { _id: id, user: req.user._id },

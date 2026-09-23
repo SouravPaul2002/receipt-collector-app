@@ -34,6 +34,12 @@ export interface Warranty {
     retailer?: string
     warrantyMonths: number
     warrantyExpiryDate: string
+    reminderDaysBefore?: number[]
+    notificationChannels?: {
+        email?: boolean
+        whatsapp?: boolean
+        webPush?: boolean
+    }
     driveFileId?: string
     driveFileUrl?: string
     notes?: string

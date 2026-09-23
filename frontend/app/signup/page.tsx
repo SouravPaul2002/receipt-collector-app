@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
     Field,
     FieldGroup,
@@ -62,8 +61,16 @@ export default function SignupPage() {
         webPush: false,
     })
 
-    // Selected reminder intervals (default: 30 days before)
-    const [reminderTime, setReminderTime] = React.useState<string>("30")
+    // Selected reminder intervals (multi-select: 30, 7, 1 days before expiry)
+    const [reminderDays, setReminderDays] = React.useState<number[]>([30, 7, 1])
+
+    const toggleReminderDay = (day: number) => {
+        setReminderDays((prev) =>
+            prev.includes(day)
+                ? prev.filter((d) => d !== day)
+                : [...prev, day].sort((a, b) => b - a)
+        )
+    }
 
     // Theme initialization & sync with localStorage
     React.useEffect(() => {
@@ -425,73 +432,82 @@ export default function SignupPage() {
                                                 />
                                             </div>
 
-                                            {/* 2. WhatsApp Channel (Default OFF) */}
-                                            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/40">
+                                            {/* 2. WhatsApp Channel (Disabled for now) */}
+                                            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/40 dark:bg-zinc-800/20 opacity-70">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                    <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600/70 dark:text-emerald-400/70 flex items-center justify-center shrink-0">
                                                         <MessageSquare className="size-4" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs font-semibold text-foreground">
-                                                            WhatsApp Messages
-                                                        </p>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="text-xs font-semibold text-foreground">
+                                                                WhatsApp Messages
+                                                            </p>
+                                                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                                Coming Soon
+                                                            </Badge>
+                                                        </div>
                                                         <p className="text-[11px] text-muted-foreground">
                                                             Instant alerts sent directly to WhatsApp
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <Switch
-                                                    checked={notifications.whatsapp}
-                                                    onCheckedChange={(checked) =>
-                                                        setNotifications({ ...notifications, whatsapp: checked })
-                                                    }
+                                                    checked={false}
+                                                    disabled={true}
                                                     size="sm"
+                                                    aria-label="WhatsApp notifications coming soon"
                                                 />
                                             </div>
 
-                                            {/* 3. Web Push Notification Channel (Default OFF) */}
-                                            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/40">
+                                            {/* 3. Web Push Notification Channel (Disabled for now) */}
+                                            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/40 dark:bg-zinc-800/20 opacity-70">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                                                    <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600/70 dark:text-purple-400/70 flex items-center justify-center shrink-0">
                                                         <Globe className="size-4" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs font-semibold text-foreground">
-                                                            Web Push Notifications
-                                                        </p>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="text-xs font-semibold text-foreground">
+                                                                Web Push Notifications
+                                                            </p>
+                                                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                                Coming Soon
+                                                            </Badge>
+                                                        </div>
                                                         <p className="text-[11px] text-muted-foreground">
                                                             Desktop & mobile browser banner alerts
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <Switch
-                                                    checked={notifications.webPush}
-                                                    onCheckedChange={(checked) =>
-                                                        setNotifications({ ...notifications, webPush: checked })
-                                                    }
+                                                    checked={false}
+                                                    disabled={true}
                                                     size="sm"
+                                                    aria-label="Web push notifications coming soon"
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Reminder Times Radio Group */}
+                                    {/* Reminder Times Multi-Select */}
                                     <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
-                                        <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <Sparkles className="size-3.5 text-amber-500" />
-                                            Reminder Schedule (Days Before Expiry)
-                                        </span>
-                                        <RadioGroup
-                                            value={reminderTime}
-                                            onValueChange={(val) => setReminderTime(val)}
-                                            className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1"
-                                        >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                <Sparkles className="size-3.5 text-amber-500" />
+                                                Reminder Schedule (Days Before Expiry)
+                                            </span>
+                                            <span className="text-[11px] text-muted-foreground">
+                                                Select all that apply
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                                             {[
-                                                { value: "30", label: "30 days before" },
-                                                { value: "7", label: "7 days before" },
-                                                { value: "1", label: "1 day before" },
+                                                { value: 30, label: "30 days before" },
+                                                { value: 7, label: "7 days before" },
+                                                { value: 1, label: "1 day before" },
                                             ].map((item) => {
-                                                const isSelected = reminderTime === item.value
+                                                const isSelected = reminderDays.includes(item.value)
                                                 return (
                                                     <label
                                                         key={item.value}
@@ -502,12 +518,17 @@ export default function SignupPage() {
                                                                 : "border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800 text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-600"
                                                         }`}
                                                     >
-                                                        <RadioGroupItem value={item.value} id={`reminder-${item.value}`} />
+                                                        <Checkbox
+                                                            id={`reminder-${item.value}`}
+                                                            checked={isSelected}
+                                                            onCheckedChange={() => toggleReminderDay(item.value)}
+                                                            className="cursor-pointer"
+                                                        />
                                                         <span>{item.label}</span>
                                                     </label>
                                                 )
                                             })}
-                                        </RadioGroup>
+                                        </div>
                                     </div>
                                 </FieldSet>
 

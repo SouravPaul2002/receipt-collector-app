@@ -72,6 +72,15 @@ const productSchema = new Schema(
         notes: {
             type: String,
             trim: true
+        },
+        reminderDaysBefore: {
+            type: [Number],
+            default: [30, 7, 1]
+        },
+        notificationChannels: {
+            email: { type: Boolean, default: true },
+            whatsapp: { type: Boolean, default: false },
+            webPush: { type: Boolean, default: false }
         }
     },
     {

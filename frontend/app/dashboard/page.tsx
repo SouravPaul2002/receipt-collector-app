@@ -193,7 +193,11 @@ export default function DashboardPage() {
                 const formData = new FormData()
                 Object.entries(formValues).forEach(([key, val]) => {
                     if (val !== undefined && val !== null && val !== "") {
-                        formData.append(key, String(val))
+                        if (typeof val === "object") {
+                            formData.append(key, JSON.stringify(val))
+                        } else {
+                            formData.append(key, String(val))
+                        }
                     }
                 })
                 if (file) {

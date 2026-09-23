@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Sparkles,
     UploadCloud,
@@ -36,6 +38,11 @@ import {
     Hash,
     Layers,
     Loader2,
+    Bell,
+    Mail,
+    MessageSquare,
+    Globe,
+    ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -94,9 +101,32 @@ export function WarrantyFormDrawer({
         notes: "",
     })
 
+    // Notification channel preferences for this warranty
+    const [notifications, setNotifications] = React.useState({
+        email: true,
+        whatsapp: false,
+        webPush: false,
+    })
+
+    // Selected reminder intervals (multi-select: 30, 7, 1 days before expiry)
+    const [reminderDays, setReminderDays] = React.useState<number[]>([30, 7, 1])
+
+    const toggleReminderDay = (day: number) => {
+        setReminderDays((prev) =>
+            prev.includes(day)
+                ? prev.filter((d) => d !== day)
+                : [...prev, day].sort((a, b) => b - a)
+        )
+    }
+
     // Reset or prefill when initialData changes
     React.useEffect(() => {
         if (isOpen) {
+            // Always start on Step 1
+            setStep(1)
+            setFile(null)
+            setFileProgress(0)
+
             if (initialData) {
                 setFormValues({
                     productName: initialData.productName || "",
@@ -113,8 +143,17 @@ export function WarrantyFormDrawer({
                     serialNumber: initialData.serialNumber || "",
                     notes: initialData.notes || "",
                 })
-                // In edit mode, default to Step 2
-                setStep(2)
+                const existingNotification = initialData.notificationChannels || (initialData as any)?.notifications
+                setNotifications({
+                    email: existingNotification?.email ?? true,
+                    whatsapp: false,
+                    webPush: false,
+                })
+                if (Array.isArray(initialData.reminderDaysBefore)) {
+                    setReminderDays(initialData.reminderDaysBefore)
+                } else {
+                    setReminderDays([30, 7, 1])
+                }
             } else {
                 setFormValues({
                     productName: "",
@@ -129,9 +168,12 @@ export function WarrantyFormDrawer({
                     serialNumber: "",
                     notes: "",
                 })
-                setFile(null)
-                setFileProgress(0)
-                setStep(1)
+                setNotifications({
+                    email: true,
+                    whatsapp: false,
+                    webPush: false,
+                })
+                setReminderDays([30, 7, 1])
             }
         }
     }, [isOpen, initialData])
@@ -189,7 +231,11 @@ export function WarrantyFormDrawer({
             return
         }
         await onSubmit({
-            formValues,
+            formValues: {
+                ...formValues,
+                notifications,
+                reminderDaysBefore: reminderDays,
+            },
             file,
         })
     }
@@ -280,7 +326,9 @@ export function WarrantyFormDrawer({
 
                                 <div>
                                     <p className="text-xs font-bold text-foreground">
-                                        Click to upload or drag & drop receipt
+                                        {initialData?.driveFileUrl || initialData?.driveFileId
+                                            ? "Upload a new receipt to replace existing"
+                                            : "Click to upload or drag & drop receipt"}
                                     </p>
                                     <p className="text-[11px] text-muted-foreground mt-0.5">
                                         Supported formats: PDF, PNG, JPG, WEBP, HEIC (Max 10MB)
@@ -288,7 +336,56 @@ export function WarrantyFormDrawer({
                                 </div>
                             </div>
 
-                            {/* File Upload Progress / Selected Card */}
+                            {/* Existing Google Drive Receipt (in edit mode if no replacement file selected) */}
+                            {!file && (initialData?.driveFileUrl || initialData?.driveFileId) && (
+                                <div className="p-4 rounded-2xl border border-emerald-500/30 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="size-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                <FileText className="size-5" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-bold text-foreground truncate">
+                                                        {initialData.productName ? `${initialData.productName} Receipt` : "Uploaded Receipt"}
+                                                    </p>
+                                                    <Badge variant="outline" className="text-[10px] px-2 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10">
+                                                        Attached on Drive
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                    Stored securely in your Google Drive Vault
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {initialData.driveFileUrl && (
+                                                <a
+                                                    href={initialData.driveFileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-foreground transition-colors"
+                                                >
+                                                    <ExternalLink className="size-3.5" />
+                                                    <span>View</span>
+                                                </a>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="h-8 px-3 rounded-lg text-xs font-semibold cursor-pointer hover:bg-accent"
+                                            >
+                                                Replace
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Newly Selected Replacement / Uploaded File Progress */}
                             {file && (
                                 <div className="p-4 rounded-2xl border border-border bg-card shadow-xs space-y-3 animate-in fade-in duration-200">
                                     <div className="flex items-center justify-between gap-3">
@@ -297,9 +394,16 @@ export function WarrantyFormDrawer({
                                                 <FileText className="size-5" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs font-bold text-foreground truncate">
-                                                    {file.name}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-bold text-foreground truncate">
+                                                        {file.name}
+                                                    </p>
+                                                    {initialData?.driveFileUrl && (
+                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">
+                                                            New Replacement
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                                 <p className="text-[11px] text-muted-foreground">
                                                     {(file.size / (1024 * 1024)).toFixed(2)} MB
                                                 </p>
@@ -324,6 +428,19 @@ export function WarrantyFormDrawer({
                                                     Reupload
                                                 </Button>
                                             )}
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    removeFile()
+                                                }}
+                                                className="size-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                                            >
+                                                <X className="size-4" />
+                                                <span className="sr-only">Remove</span>
+                                            </Button>
                                         </div>
                                     </div>
 
@@ -533,6 +650,146 @@ export function WarrantyFormDrawer({
                                         className="h-10 text-xs rounded-xl"
                                     />
                                 </Field>
+
+                                {/* Notification Channels Section */}
+                                <div className="pt-2 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                            <Bell className="size-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground">
+                                                Reminder Channels
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                Select how you want to receive alerts before this warranty expires
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                        {/* 1. Email Channel (Default ON) */}
+                                        <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card/60 shadow-xs">
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                                    <Mail className="size-4" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-foreground">
+                                                        Email Reminders
+                                                    </p>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Send expiry notifications to your registered email
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                checked={notifications.email}
+                                                onCheckedChange={(checked) =>
+                                                    setNotifications({ ...notifications, email: checked })
+                                                }
+                                                size="sm"
+                                            />
+                                        </div>
+
+                                        {/* 2. WhatsApp Channel (Disabled / Coming Soon) */}
+                                        <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/60 bg-muted/30 opacity-70">
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600/70 dark:text-emerald-400/70 flex items-center justify-center shrink-0">
+                                                    <MessageSquare className="size-4" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="text-xs font-semibold text-foreground">
+                                                            WhatsApp Alerts
+                                                        </p>
+                                                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                            Coming Soon
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Instant reminder messages sent directly to WhatsApp
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                checked={false}
+                                                disabled={true}
+                                                size="sm"
+                                                aria-label="WhatsApp alerts coming soon"
+                                            />
+                                        </div>
+
+                                        {/* 3. Web Push Channel (Disabled / Coming Soon) */}
+                                        <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/60 bg-muted/30 opacity-70">
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600/70 dark:text-purple-400/70 flex items-center justify-center shrink-0">
+                                                    <Globe className="size-4" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="text-xs font-semibold text-foreground">
+                                                            Web Push Notifications
+                                                        </p>
+                                                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-medium rounded-md bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                            Coming Soon
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Desktop & mobile browser banner notifications
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                checked={false}
+                                                disabled={true}
+                                                size="sm"
+                                                aria-label="Web push notifications coming soon"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Reminder Schedule (Days Before Expiry) */}
+                                <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <Sparkles className="size-3.5 text-amber-500" />
+                                            Reminder Schedule (Days Before Expiry)
+                                        </span>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            Select all that apply
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                                        {[
+                                            { value: 30, label: "30 days before" },
+                                            { value: 7, label: "7 days before" },
+                                            { value: 1, label: "1 day before" },
+                                        ].map((item) => {
+                                            const isSelected = reminderDays.includes(item.value)
+                                            return (
+                                                <label
+                                                    key={item.value}
+                                                    htmlFor={`modal-reminder-${item.value}`}
+                                                    className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all cursor-pointer select-none text-xs ${
+                                                        isSelected
+                                                            ? "border-primary bg-primary/5 text-foreground font-semibold ring-1 ring-primary/40 shadow-xs"
+                                                            : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-600"
+                                                    }`}
+                                                >
+                                                    <Checkbox
+                                                        id={`modal-reminder-${item.value}`}
+                                                        checked={isSelected}
+                                                        onCheckedChange={() => toggleReminderDay(item.value)}
+                                                        className="cursor-pointer"
+                                                    />
+                                                    <span>{item.label}</span>
+                                                </label>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
                             </FieldSet>
                         </form>
                     )}
@@ -543,17 +800,23 @@ export function WarrantyFormDrawer({
                     {step === 1 ? (
                         <>
                             <Button
+                                key="btn-footer-cancel"
                                 type="button"
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
-                                className="h-10 px-4 rounded-xl text-xs font-semibold"
+                                className="h-10 px-4 rounded-xl text-xs font-semibold cursor-pointer"
                             >
                                 Cancel
                             </Button>
 
                             <Button
+                                key="btn-footer-next"
                                 type="button"
-                                onClick={() => setStep(2)}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setStep(2)
+                                }}
                                 className="h-10 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
                             >
                                 <span>Next</span>
@@ -563,17 +826,23 @@ export function WarrantyFormDrawer({
                     ) : (
                         <>
                             <Button
+                                key="btn-footer-back"
                                 type="button"
                                 variant="outline"
-                                onClick={() => setStep(1)}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setStep(1)
+                                }}
                                 disabled={isLoading}
-                                className="h-10 px-4 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                                className="h-10 px-4 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                             >
                                 <ArrowLeft className="size-4" />
                                 <span>Back</span>
                             </Button>
 
                             <Button
+                                key="btn-footer-submit"
                                 type="submit"
                                 form="warranty-form"
                                 disabled={isLoading || !formValues.productName.trim()}
