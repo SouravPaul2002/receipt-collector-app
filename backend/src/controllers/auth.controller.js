@@ -188,3 +188,88 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, error?.message || "Invalid Refresh Token")
     }
 })
+
+/**
+ * @desc    Update current logged in user profile
+ * @route   PATCH /api/auth/profile
+ * @access  Private (Protected by verifyJWT)
+ */
+export const updateProfile = asyncHandler(async (req, res) => {
+    const { name, avatar, preferences, notificationChannels, reminderDaysBefore } = req.body
+
+    const updateFields = {}
+
+    if (name !== undefined) {
+        if (typeof name !== 'string' || !name.trim()) {
+            throw new ApiError(400, "Name cannot be empty")
+        }
+        updateFields.name = name.trim()
+    }
+
+    if (avatar !== undefined) {
+        updateFields.avatar = avatar
+    }
+
+    // Handle nested preferences
+    if (preferences && typeof preferences === 'object') {
+        if (preferences.notificationChannels && typeof preferences.notificationChannels === 'object') {
+            updateFields['preferences.notificationChannels'] = preferences.notificationChannels
+        }
+        if (Array.isArray(preferences.reminderDaysBefore)) {
+            updateFields['preferences.reminderDaysBefore'] = preferences.reminderDaysBefore.map(Number)
+        }
+    }
+
+    // Direct preferences aliases if passed at root level
+    if (notificationChannels && typeof notificationChannels === 'object') {
+        updateFields['preferences.notificationChannels'] = notificationChannels
+    }
+
+    if (Array.isArray(reminderDaysBefore)) {
+        updateFields['preferences.reminderDaysBefore'] = reminderDaysBefore.map(Number)
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+        throw new ApiError(400, "No valid fields provided for update")
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateFields },
+        { new: true, runValidators: true }
+    ).select("-password -refreshToken -googleDriveRefreshToken")
+
+    if (!updatedUser) {
+        throw new ApiError(404, "User not found")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "Profile updated successfully")
+    )
+})
+
+/**
+ * @desc    Disconnect Google Drive integration
+ * @route   POST /api/auth/drive/disconnect
+ * @access  Private (Protected by verifyJWT)
+ */
+export const disconnectDrive = asyncHandler(async (req, res) => {
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { driveConnected: false },
+            $unset: { googleDriveRefreshToken: 1 }
+        },
+        { new: true }
+    ).select("-password -refreshToken -googleDriveRefreshToken")
+
+    if (!updatedUser) {
+        throw new ApiError(404, "User not found")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "Google Drive disconnected successfully")
+    )
+})
+
+

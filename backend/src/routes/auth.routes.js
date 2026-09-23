@@ -4,7 +4,9 @@ import {
     loginUser,
     logoutUser,
     getCurrentUser,
-    refreshAccessToken
+    refreshAccessToken,
+    updateProfile,
+    disconnectDrive
 } from '../controllers/auth.controller.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 
@@ -18,5 +20,7 @@ router.post('/refresh-token', refreshAccessToken)
 // Protected Routes (Require JWT)
 router.post('/logout', verifyJWT, logoutUser)
 router.get('/me', verifyJWT, getCurrentUser)
+router.patch('/profile', verifyJWT, updateProfile)
+router.post('/drive/disconnect', verifyJWT, disconnectDrive)
 
 export default router
