@@ -47,9 +47,16 @@
 # vercel
 .vercel
 
-# documentation and markdown files
+# Markdown files (ignore internal markdown files except README.md and documentation/)
 *.md
 **/*.md
-documentation/
-**/documentation/
+
+# Whitelist README.md files and documentation folder
+!README.md
+!**/README.md
+!**/readme.md
+!documentation/
+!documentation/**
+
+
 
