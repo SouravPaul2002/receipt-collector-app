@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/api"
 import { User, Warranty } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -47,6 +48,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
+    const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [warranties, setWarranties] = useState<Warranty[]>([])
     const [loading, setLoading] = useState<boolean>(true)
@@ -447,7 +449,7 @@ export default function DashboardPage() {
                                 key={w._id}
                                 warranty={w}
                                 onClick={(item) => {
-                                    console.log("Viewing warranty details for:", item._id)
+                                    router.push(`/dashboard/warranty/${item._id}`)
                                 }}
                                 onEdit={(item) => handleOpenEdit(item)}
                                 onDelete={(item) => handleDeleteWarranty(item)}
@@ -458,7 +460,7 @@ export default function DashboardPage() {
                     <CustomTable
                         data={filteredWarranties}
                         onRowClick={(item) => {
-                            console.log("Viewing warranty details for:", item._id)
+                            router.push(`/dashboard/warranty/${item._id}`)
                         }}
                         onEdit={(item) => handleOpenEdit(item)}
                         onDelete={(item) => handleDeleteWarranty(item)}
