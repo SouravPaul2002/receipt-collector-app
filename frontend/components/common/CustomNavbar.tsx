@@ -5,6 +5,7 @@ import { User } from "@/lib/types"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { CustomDropdown } from "@/components/common/CustomDropdown"
+import { NotificationDropdown } from "@/components/common/NotificationDropdown"
 import { Switch } from "@/components/ui/switch"
 import {
     Tooltip,
@@ -16,7 +17,6 @@ import {
     User as UserIcon,
     Moon,
     LogOut,
-    Bell,
     Sparkles,
     BookText,
     Settings,
@@ -106,16 +106,8 @@ export function CustomNavbar({
                         </TooltipContent>
                     </Tooltip>
 
-                    {/* Notification Tooltip Button */}
-                    <Tooltip>
-                        <TooltipTrigger className="size-9 rounded-xl text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring relative">
-                            <Bell className="size-5" />
-                            <span className="sr-only">Notification</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs font-medium">
-                            Notification
-                        </TooltipContent>
-                    </Tooltip>
+                    {/* Interactive Notification Bell Dropdown */}
+                    <NotificationDropdown />
 
                     {/* Settings Tooltip Button */}
                     <Tooltip>

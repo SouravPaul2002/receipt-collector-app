@@ -41,6 +41,12 @@ import {
     Trash2,
     AlertTriangle,
     ShieldAlert,
+    Bell,
+    BellOff,
+    Mail,
+    MessageSquare,
+    Globe,
+    CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -499,7 +505,116 @@ export default function WarrantyDetailPage() {
                             </CardContent>
                         </Card>
 
-                        {/* 3. Document / Receipt Section */}
+                        {/* 3. Scheduled Reminders Section */}
+                        <Card className="rounded-2xl border-border bg-card shadow-xs">
+                            <CardHeader className="p-6 pb-4 border-b border-border">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                                            <Bell className="size-4 text-muted-foreground" />
+                                            <span>Scheduled Expiration Reminders</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-xs text-muted-foreground">
+                                            Automated notifications configured before this warranty expires
+                                        </CardDescription>
+                                    </div>
+                                    {warranty.reminders && warranty.reminders.length > 0 && (
+                                        <Badge variant="secondary" className="text-[11px] font-semibold px-2.5 py-0.5">
+                                            {warranty.reminders.length} {warranty.reminders.length === 1 ? "Alert" : "Alerts"}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </CardHeader>
+
+                            <CardContent className="p-6">
+                                {warranty.reminders && warranty.reminders.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {warranty.reminders.map((reminder) => {
+                                            const isSent = reminder.status === "sent"
+                                            const isFailed = reminder.status === "failed"
+                                            const formattedSchedule = new Date(reminder.scheduledDate).toLocaleDateString("en-US", {
+                                                year: "numeric",
+                                                month: "short",
+                                                day: "numeric",
+                                            })
+
+                                            return (
+                                                <div
+                                                    key={reminder._id}
+                                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/30 transition-all hover:bg-muted/50"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="size-9 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-foreground flex items-center justify-center shrink-0">
+                                                            {reminder.channel === "email" ? (
+                                                                <Mail className="size-4" />
+                                                            ) : reminder.channel === "whatsapp" ? (
+                                                                <MessageSquare className="size-4" />
+                                                            ) : (
+                                                                <Globe className="size-4" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-xs font-bold text-foreground">
+                                                                    {reminder.daysBeforeExpiry} {reminder.daysBeforeExpiry === 1 ? "day" : "days"} before expiry
+                                                                </p>
+                                                                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                                                                    via {reminder.channel}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                                                <Calendar className="size-3" />
+                                                                <span>Scheduled for {formattedSchedule}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        {isSent ? (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="text-[10px] font-semibold flex items-center gap-1 bg-zinc-200 dark:bg-zinc-700 text-foreground"
+                                                            >
+                                                                <CheckCircle2 className="size-3 text-emerald-500" />
+                                                                <span>Sent {reminder.sentAt ? `on ${new Date(reminder.sentAt).toLocaleDateString()}` : ""}</span>
+                                                            </Badge>
+                                                        ) : isFailed ? (
+                                                            <Badge variant="destructive" className="text-[10px] font-semibold">
+                                                                Failed
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-[10px] font-semibold flex items-center gap-1 bg-background text-foreground"
+                                                            >
+                                                                <Clock className="size-3 text-muted-foreground" />
+                                                                <span>Scheduled</span>
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center rounded-xl border border-dashed border-border bg-muted/20 space-y-2">
+                                        <div className="size-9 mx-auto rounded-xl bg-muted text-muted-foreground flex items-center justify-center">
+                                            <BellOff className="size-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-foreground">
+                                                No upcoming reminders scheduled
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground max-w-sm mx-auto mt-0.5">
+                                                Reminders are automatically created based on your reminder intervals (e.g. 30, 7, 1 days before expiry).
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* 4. Document / Receipt Section */}
                         <Card className="rounded-2xl border-border bg-card shadow-xs">
                             <CardHeader className="p-6 pb-4 border-b border-border">
                                 <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">

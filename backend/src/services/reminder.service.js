@@ -4,6 +4,13 @@ import { sendReminderEmail } from './email.service.js'
 const DEFAULT_INTERVALS = [30, 7, 1] // days before expiry
 
 export const generateRemindersForProduct = async (product, user) => {
+    // Delete any existing pending reminders for this product first to prevent duplicates
+    await Reminder.deleteMany({
+        product: product._id,
+        user: user._id,
+        status: 'pending'
+    })
+
     const enabledChannels = []
     const notificationChannels = product.notificationChannels || user.preferences?.notificationChannels || user.notificationChannels || {}
     if (notificationChannels.email) enabledChannels.push('email')

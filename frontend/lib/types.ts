@@ -44,8 +44,28 @@ export interface Warranty {
     driveFileUrl?: string
     notes?: string
     ocrData?: Record<string, unknown>
+    reminders?: Reminder[]
     createdAt?: string
     updatedAt?: string
+}
+
+export interface Reminder {
+    _id: string
+    user: string
+    product: string | Warranty
+    scheduledDate: string
+    daysBeforeExpiry: number
+    channel: "email" | "push" | "whatsapp" | "in_app"
+    status: "pending" | "sent" | "failed"
+    isRead?: boolean
+    isDismissed?: boolean
+    sentAt?: string
+    createdAt?: string
+    updatedAt?: string
+}
+
+export type NotificationItem = Reminder & {
+    product: Warranty
 }
 
 export interface ApiResponse<T = unknown> {

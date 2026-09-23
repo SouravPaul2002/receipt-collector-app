@@ -2,6 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { apiFetch } from "@/lib/api"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +42,7 @@ import {
 } from "lucide-react"
 
 export default function SignupPage() {
+    const router = useRouter()
     const [step, setStep] = React.useState<1 | 2>(1)
     const [isLoading, setIsLoading] = React.useState(false)
     const [isDarkMode, setIsDarkMode] = React.useState<boolean>(true)
@@ -111,15 +115,32 @@ export default function SignupPage() {
         setStep(2)
     }
 
-    const handleCompleteSignup = (e: React.FormEvent) => {
+    const handleCompleteSignup = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
-        // UI only demonstration
-        setTimeout(() => {
+        try {
+            const res = await apiFetch("/auth/register", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: formData.name.trim(),
+                    email: formData.email.trim(),
+                    password: formData.password,
+                    preferences: {
+                        notificationChannels: notifications,
+                        reminderDaysBefore: reminderDays,
+                    },
+                }),
+            })
+
+            if (res.data) {
+                toast.success("Account created successfully! Redirecting...")
+                router.push("/dashboard")
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Registration failed. Please try again.")
+        } finally {
             setIsLoading(false)
-            alert("Account created successfully! Redirecting...")
-            window.location.href = "/dashboard"
-        }, 800)
+        }
     }
 
     return (

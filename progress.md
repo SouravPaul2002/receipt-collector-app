@@ -46,8 +46,10 @@ This document tracks all completed features, architectural implementations, and 
   - [x] Type-safe API client utility (`lib/api.ts`) with cross-origin cookie management
   - [x] Polished 1-click Google OAuth login page (`/login`)
   - [x] Full-featured Warranty Vault dashboard (`/dashboard`) with metrics cards, real-time search, category tabs, and Google Drive links
-  - [ ] Add Warranty modal / form (with file upload to Drive)
-  - [ ] Edit & Delete warranty actions with confirmation dialogs
+  - [x] Add & Edit Warranty 2-step Drawer (`WarrantyFormDrawer`) with file upload progress
+  - [x] Warranty Detail Page (`/dashboard/warranty/[id]`) with live status, specs, receipt viewer, and reminder timeline
+  - [x] In-App Notification Dropdown with live red badge counter, mark as read, clear all, and Warranty Quick View Modal (`WarrantyQuickViewModal`)
+  - [x] Edit & Delete warranty actions with confirmation dialogs and orphan reminder cleanup
 
 - **Step 4: OCR Auto-Extraction** $\rightarrow$ **Pending (0%)**
 - **Step 5: Claim Assistance & Checklists** $\rightarrow$ **Pending (0%)**

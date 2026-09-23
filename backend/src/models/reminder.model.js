@@ -25,13 +25,23 @@ const reminderSchema = new Schema(
         },
         channel: {
             type: String,
-            enum: ['email', 'push', 'whatsapp'],
+            enum: ['email', 'push', 'whatsapp', 'in_app'],
             default: 'email'
         },
         status: {
             type: String,
             enum: ['pending', 'sent', 'failed'],
             default: 'pending',
+            index: true
+        },
+        isRead: {
+            type: Boolean,
+            default: false,
+            index: true
+        },
+        isDismissed: {
+            type: Boolean,
+            default: false,
             index: true
         },
         sentAt: {

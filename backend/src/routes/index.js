@@ -3,6 +3,7 @@ import healthRoutes from './health.routes.js'
 import authRoutes from './auth.routes.js'
 import googleAuthRoutes from './googleAuth.routes.js'
 import warrantyRoutes from './warranty.routes.js'
+import notificationRoutes from './notification.routes.js'
 
 const router = Router()
 
@@ -11,6 +12,8 @@ router.use('/health', healthRoutes)
 router.use('/auth', authRoutes)
 router.use('/auth', googleAuthRoutes)
 router.use('/warranties', warrantyRoutes)
+router.use('/notifications', notificationRoutes)
 
 export default router
+
 

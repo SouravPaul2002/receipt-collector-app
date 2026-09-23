@@ -2,6 +2,7 @@ import asyncHandler from '../utils/asyncHandler.js'
 import ApiError from '../utils/ApiError.js'
 import ApiResponse from '../utils/ApiResponse.js'
 import Product from '../models/product.model.js'
+import Reminder from '../models/reminder.model.js'
 import { uploadFileToDrive, deleteFileFromDrive } from '../services/googleDrive.service.js'
 import { generateRemindersForProduct } from '../services/reminder.service.js'
 
@@ -152,14 +153,37 @@ export const getAllWarranties = asyncHandler(async (req, res) => {
  */
 export const getWarrantyById = asyncHandler(async (req, res) => {
     const { id } = req.params
-    const warranty = await Product.findOne({ _id: id, user: req.user._id })
+    const warranty = await Product.findOne({ _id: id, user: req.user._id }).lean()
 
     if (!warranty) {
         throw new ApiError(404, "Warranty not found")
     }
 
+    const reminders = await Reminder.find({ product: id, user: req.user._id })
+        .sort({ scheduledDate: 1, createdAt: -1 })
+        .lean()
+
+    // Deduplicate reminders by daysBeforeExpiry + channel + status and purge duplicates
+    const uniqueReminders = []
+    const seenKeys = new Set()
+    const duplicateIds = []
+
+    for (const r of reminders) {
+        const key = `${r.daysBeforeExpiry}-${r.channel}-${r.status}`
+        if (seenKeys.has(key)) {
+            duplicateIds.push(r._id)
+        } else {
+            seenKeys.add(key)
+            uniqueReminders.push(r)
+        }
+    }
+
+    if (duplicateIds.length > 0) {
+        await Reminder.deleteMany({ _id: { $in: duplicateIds } })
+    }
+
     return res.status(200).json(
-        new ApiResponse(200, warranty, "Warranty fetched successfully")
+        new ApiResponse(200, { ...warranty, reminders: uniqueReminders }, "Warranty fetched successfully")
     )
 })
 
@@ -170,6 +194,7 @@ export const getWarrantyById = asyncHandler(async (req, res) => {
  */
 export const deleteAllWarranties = asyncHandler(async (req, res) => {
     const result = await Product.deleteMany({ user: req.user._id })
+    await Reminder.deleteMany({ user: req.user._id })
 
     return res.status(200).json(
         new ApiResponse(200, { deletedCount: result.deletedCount }, "All user warranties deleted successfully")
@@ -188,6 +213,9 @@ export const deleteWarrantyById = asyncHandler(async (req, res) => {
     if (!warranty) {
         throw new ApiError(404, "Warranty not found")
     }
+
+    // Clean up associated reminders to prevent orphan ghost reminders
+    await Reminder.deleteMany({ product: id, user: req.user._id })
 
     return res.status(200).json(
         new ApiResponse(200, warranty, "Warranty deleted successfully")
@@ -237,6 +265,14 @@ export const updateWarrantyById = asyncHandler(async (req, res) => {
         req.body,
         { new: true, runValidators: true }
     )
+
+    // Regenerate pending reminders if warranty details or reminder channels/intervals were updated
+    try {
+        await Reminder.deleteMany({ product: id, user: req.user._id, status: 'pending' })
+        await generateRemindersForProduct(updatedWarranty, req.user)
+    } catch (reminderErr) {
+        console.error('Failed to regenerate reminders for product', id, reminderErr)
+    }
 
     return res.status(200).json(
         new ApiResponse(200, updatedWarranty, "Warranty updated successfully")
