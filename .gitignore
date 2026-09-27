@@ -57,6 +57,8 @@
 !**/readme.md
 !documentation/
 !documentation/**
+!**/env.example
+!**/env.local.example
 
 
-
+
